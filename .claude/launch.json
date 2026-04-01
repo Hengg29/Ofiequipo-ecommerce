@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "PHP Server",
+      "runtimeExecutable": "/Users/hengg/Library/Application Support/Herd/bin/php",
+      "runtimeArgs": ["-S", "localhost:8000"],
+      "port": 8000
+    },
+    {
+      "name": "Next.js Dev Server",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000
+    }
+  ]
+}

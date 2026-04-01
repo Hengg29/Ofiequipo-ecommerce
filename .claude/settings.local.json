@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la /Users/hengg/Documents/OfieEquipoV2/*.php)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(php --version)",
+      "Read(//usr/bin/**)",
+      "Read(//opt/homebrew/Cellar/**)"
+    ]
+  }
+}
