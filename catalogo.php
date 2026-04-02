@@ -1,5 +1,5 @@
 <?php
-
+session_start();
 require_once "apis/db.php";
 
 // Función helper para normalizar y obtener URLs de imágenes
@@ -2068,6 +2068,12 @@ function pageUrl($p)
                     <a href="tel:8331881814" class="btn btn-secondary btn-small">Llamar</a>
                     <a href="https://wa.me/528331881814" class="btn btn-secondary btn-small">WhatsApp</a>
                     <button class="btn btn-primary btn-small" onclick="openQuoteModal()">Cotizar</button>
+                    <?php $cartCount = array_sum(array_column($_SESSION['cart'] ?? [], 'cantidad')); ?>
+                    <button onclick="openCartDrawer()" class="btn btn-secondary btn-small" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 18c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm10 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zM5.82 5H21l-1.68 8.39c-.16.79-.84 1.36-1.64 1.36H8.08c-.8 0-1.49-.57-1.64-1.36L5 5H3V3H5.82z"/></svg>
+                        Carrito
+                        <span class="cart-badge-count" style="<?= $cartCount > 0 ? '' : 'display:none;' ?>background:#ef4444;color:white;font-size:10px;font-weight:700;min-width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;padding:0 3px;"><?= $cartCount ?></span>
+                    </button>
                 </div>
                 <button class="menu-toggle" aria-label="Toggle menu">
                     <span></span>
@@ -2182,9 +2188,8 @@ function pageUrl($p)
                                         onclick="openQuoteModal('<?= htmlspecialchars($producto['nombre'], ENT_QUOTES) ?>')">
                                         Cotizar
                                     </button>
-                                    <button class="btn btn-secondary"
-                                        onclick="openProductModal('<?= htmlspecialchars($producto['nombre'], ENT_QUOTES) ?>', '<?= htmlspecialchars($producto['descripcion'] ?? 'Producto de alta calidad para tu oficina', ENT_QUOTES) ?>', '<?= htmlspecialchars($imagenUrl, ENT_QUOTES) ?>')">Ver
-                                        detalles</button>
+                                    <a class="btn btn-secondary"
+                                        href="producto.php?id=<?= (int)$producto['id'] ?>">Ver detalles</a>
                                 </div>
                             </div>
                         </div>
@@ -2998,6 +3003,7 @@ function pageUrl($p)
                 fill="#fff" />
         </svg>
     </a>
+<?php require_once __DIR__ . '/includes/cart_drawer.php'; ?>
 </body>
 
 </html>
