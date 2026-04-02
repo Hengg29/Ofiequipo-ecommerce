@@ -57,24 +57,72 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             flex-shrink: 0;
         }
 
-        /* decorative circles */
-        .panel-brand::before {
-            content: '';
+        /* ── Animated circles ─────────────────────── */
+        @keyframes drift1 {
+            0%   { transform: translate(0,0) scale(1); }
+            25%  { transform: translate(22px,-28px) scale(1.04); }
+            50%  { transform: translate(-12px,18px) scale(0.96); }
+            75%  { transform: translate(16px,6px) scale(1.02); }
+            100% { transform: translate(0,0) scale(1); }
+        }
+        @keyframes drift2 {
+            0%   { transform: translate(0,0) scale(1); }
+            30%  { transform: translate(-20px,24px) scale(1.06); }
+            65%  { transform: translate(14px,-12px) scale(0.95); }
+            100% { transform: translate(0,0) scale(1); }
+        }
+        @keyframes drift3 {
+            0%   { transform: translate(0,0) scale(1); }
+            40%  { transform: translate(28px,-18px) scale(1.1); }
+            80%  { transform: translate(-8px,22px) scale(0.92); }
+            100% { transform: translate(0,0) scale(1); }
+        }
+        @keyframes drift4 {
+            0%   { transform: translate(0,0) scale(1); }
+            50%  { transform: translate(-24px,-16px) scale(1.08); }
+            100% { transform: translate(0,0) scale(1); }
+        }
+
+        .circle {
             position: absolute;
-            width: 520px; height: 520px;
             border-radius: 50%;
-            background: rgba(255,255,255,0.045);
-            top: -160px; right: -180px;
             pointer-events: none;
         }
-        .panel-brand::after {
-            content: '';
-            position: absolute;
+        .circle-1 {
+            width: 520px; height: 520px;
+            background: rgba(255,255,255,0.05);
+            top: -160px; right: -180px;
+            animation: drift1 20s ease-in-out infinite;
+        }
+        .circle-2 {
             width: 320px; height: 320px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.045);
+            background: rgba(255,255,255,0.05);
             bottom: -100px; left: -80px;
-            pointer-events: none;
+            animation: drift2 15s ease-in-out infinite;
+        }
+        .circle-3 {
+            width: 200px; height: 200px;
+            background: rgba(255,255,255,0.04);
+            top: 42%; left: 18%;
+            animation: drift3 11s ease-in-out infinite;
+        }
+        .circle-4 {
+            width: 110px; height: 110px;
+            background: rgba(255,255,255,0.07);
+            top: 12%; left: 8%;
+            animation: drift4 8s ease-in-out infinite;
+        }
+        .circle-5 {
+            width: 64px; height: 64px;
+            background: rgba(37,99,235,0.35);
+            bottom: 28%; right: 14%;
+            animation: drift1 7s ease-in-out infinite reverse;
+        }
+        .circle-6 {
+            width: 36px; height: 36px;
+            background: rgba(255,255,255,0.12);
+            top: 30%; right: 12%;
+            animation: drift2 5s ease-in-out infinite reverse;
         }
 
         .brand-back {
@@ -328,6 +376,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
 
     <aside class="panel-brand">
+        <!-- Animated circles -->
+        <div class="circle circle-1"></div>
+        <div class="circle circle-2"></div>
+        <div class="circle circle-3"></div>
+        <div class="circle circle-4"></div>
+        <div class="circle circle-5"></div>
+        <div class="circle circle-6"></div>
+
         <a href="index.php" class="brand-back">
             <svg viewBox="0 0 24 24"><path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
             Volver al inicio
