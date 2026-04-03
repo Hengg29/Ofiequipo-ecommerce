@@ -522,26 +522,35 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
             <span class="breadcrumb-sep">›</span>
             <a href="carrito.php">Mi Carrito</a>
             <span class="breadcrumb-sep">›</span>
+            <a href="datos.php">Datos</a>
+            <span class="breadcrumb-sep">›</span>
             <span style="color:#0f172a;font-weight:500;">Pago</span>
         </nav>
 
-        <!-- Progress -->
+        <!-- Progress (4 steps) -->
         <div class="pay-steps">
             <div class="step done">
                 <div class="step-num">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
                 </div>
-                Carrito
+                <span>Carrito</span>
+            </div>
+            <div class="step-line done"></div>
+            <div class="step done">
+                <div class="step-num">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                </div>
+                <span>Datos</span>
             </div>
             <div class="step-line done"></div>
             <div class="step active">
-                <div class="step-num">2</div>
-                Pago
+                <div class="step-num">3</div>
+                <span>Pago</span>
             </div>
             <div class="step-line"></div>
             <div class="step">
-                <div class="step-num">3</div>
-                Confirmación
+                <div class="step-num">4</div>
+                <span>Confirmación</span>
             </div>
         </div>
 
