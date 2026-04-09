@@ -5,7 +5,20 @@
       "mcp__Claude_Preview__preview_start",
       "Bash(php --version)",
       "Read(//usr/bin/**)",
-      "Read(//opt/homebrew/Cellar/**)"
+      "Read(//opt/homebrew/Cellar/**)",
+      "Skill(update-config)",
+      "Skill(update-config:*)",
+      "Bash(claude mcp:*)",
+      "Read(//usr/local/bin/**)",
+      "Read(//Users/hengg/.npm-global/bin/**)",
+      "Bash(npx claude:*)",
+      "Read(//Users/hengg/.claude/**)",
+      "Read(//Users/hengg/**)",
+      "Read(//Users/hengg/.config/**)",
+      "Bash(ls -la /Users/hengg/Documents/OfieEquipoV2/*.json)",
+      "Bash(grep -E \"\\\\.\\(php|js|css\\)$\")",
+      "Bash(file /Users/hengg/Documents/OfieEquipoV2/*.jpeg /Users/hengg/Documents/OfieEquipoV2/*.pdf)",
+      "Bash(git -C /Users/hengg/Documents/OfieEquipoV2 log --oneline)"
     ]
   }
 }

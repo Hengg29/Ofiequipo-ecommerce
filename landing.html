@@ -1,0 +1,1703 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ofiequipo de Tampico — Mobiliario de Oficina Premium</title>
+  <link rel="icon" type="image/png" href="icono_logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    /* =========================================================
+       RESET & TOKENS
+    ========================================================= */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --blue-950: #0a1628;
+      --blue-900: #0f2044;
+      --blue-800: #1e3a8a;
+      --blue-700: #1d4ed8;
+      --blue-600: #2563eb;
+      --blue-500: #3b82f6;
+      --blue-400: #60a5fa;
+      --blue-300: #93c5fd;
+      --blue-100: #dbeafe;
+      --white:    #ffffff;
+      --slate-50: #f8fafc;
+      --slate-100:#f1f5f9;
+      --slate-200:#e2e8f0;
+      --slate-400:#94a3b8;
+      --slate-600:#475569;
+      --slate-800:#1e293b;
+      --slate-900:#0f172a;
+      --gold:     #f59e0b;
+      --gold-light:#fcd34d;
+      --green:    #22c55e;
+
+      --radius-sm: 8px;
+      --radius-md: 16px;
+      --radius-lg: 24px;
+      --radius-xl: 32px;
+      --radius-full: 9999px;
+
+      --shadow-sm: 0 1px 3px rgba(0,0,0,.08);
+      --shadow-md: 0 4px 24px rgba(0,0,0,.12);
+      --shadow-lg: 0 12px 48px rgba(0,0,0,.18);
+      --shadow-blue: 0 8px 32px rgba(37,99,235,.35);
+      --shadow-glow: 0 0 60px rgba(96,165,250,.25);
+
+      --font: 'Inter', system-ui, sans-serif;
+      --ease-out: cubic-bezier(.22,.68,0,1.2);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font);
+      background: var(--white);
+      color: var(--slate-800);
+      overflow-x: hidden;
+      line-height: 1.65;
+    }
+
+    /* =========================================================
+       SCROLLBAR
+    ========================================================= */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--blue-950); }
+    ::-webkit-scrollbar-thumb { background: var(--blue-600); border-radius: 99px; }
+
+    /* =========================================================
+       UTILS
+    ========================================================= */
+    .container { max-width: 1280px; margin: 0 auto; padding: 0 40px; }
+    .sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+
+    /* Reveal animations */
+    .reveal { opacity: 0; transform: translateY(40px); transition: opacity .7s ease, transform .7s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .reveal-left { opacity: 0; transform: translateX(-50px); transition: opacity .7s ease, transform .7s ease; }
+    .reveal-left.visible { opacity: 1; transform: translateX(0); }
+    .reveal-right { opacity: 0; transform: translateX(50px); transition: opacity .7s ease, transform .7s ease; }
+    .reveal-right.visible { opacity: 1; transform: translateX(0); }
+    .stagger-1 { transition-delay: .1s; }
+    .stagger-2 { transition-delay: .2s; }
+    .stagger-3 { transition-delay: .3s; }
+    .stagger-4 { transition-delay: .4s; }
+    .stagger-5 { transition-delay: .5s; }
+    .stagger-6 { transition-delay: .6s; }
+
+    /* =========================================================
+       NOISE TEXTURE OVERLAY
+    ========================================================= */
+    .noise::after {
+      content:'';
+      position:absolute;
+      inset:0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events:none;
+      z-index:1;
+    }
+
+    /* =========================================================
+       NAV
+    ========================================================= */
+    .nav-bar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      padding: 0;
+      transition: background .4s ease, backdrop-filter .4s ease, border-bottom .4s ease;
+    }
+    .nav-bar.scrolled {
+      background: rgba(10,22,40,.88);
+      backdrop-filter: blur(20px) saturate(180%);
+      border-bottom: 1px solid rgba(255,255,255,.07);
+    }
+    .nav-inner {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 40px;
+      max-width: 1280px; margin: 0 auto;
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 12px; text-decoration: none;
+    }
+    .nav-logo img { width: 36px; height: 36px; object-fit: contain; }
+    .nav-logo-text { display: flex; flex-direction: column; }
+    .nav-logo-text strong {
+      font-size: 16px; font-weight: 800; color: var(--white); line-height: 1;
+      letter-spacing: -.3px;
+    }
+    .nav-logo-text small {
+      font-size: 9px; font-weight: 500; color: var(--blue-300); letter-spacing: 3px;
+      text-transform: uppercase; margin-top: 2px;
+    }
+    .nav-links {
+      display: flex; align-items: center; gap: 8px; list-style: none;
+    }
+    .nav-links a {
+      color: rgba(255,255,255,.75); text-decoration: none; font-size: 14px;
+      font-weight: 500; padding: 8px 14px; border-radius: var(--radius-full);
+      transition: color .2s, background .2s;
+    }
+    .nav-links a:hover { color: var(--white); background: rgba(255,255,255,.08); }
+    .nav-cta {
+      display: flex; gap: 10px;
+    }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 22px; border-radius: var(--radius-full);
+      font-size: 14px; font-weight: 600; text-decoration: none; cursor: pointer;
+      border: none; transition: all .25s var(--ease-out);
+      white-space: nowrap; letter-spacing: -.1px;
+    }
+    .btn-ghost {
+      color: var(--white); background: rgba(255,255,255,.1);
+      border: 1px solid rgba(255,255,255,.15);
+    }
+    .btn-ghost:hover {
+      background: rgba(255,255,255,.18); transform: translateY(-1px);
+    }
+    .btn-primary {
+      color: var(--white); background: var(--blue-600);
+      box-shadow: var(--shadow-blue);
+    }
+    .btn-primary:hover {
+      background: var(--blue-500); transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(37,99,235,.5);
+    }
+    .btn-lg { padding: 16px 36px; font-size: 16px; border-radius: var(--radius-full); }
+    .btn-xl { padding: 18px 44px; font-size: 17px; border-radius: var(--radius-full); }
+    .btn-white {
+      color: var(--blue-800); background: var(--white);
+      box-shadow: 0 4px 20px rgba(0,0,0,.12);
+    }
+    .btn-white:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,.18); }
+    .btn-outline-white {
+      color: var(--white); background: transparent;
+      border: 2px solid rgba(255,255,255,.4);
+    }
+    .btn-outline-white:hover {
+      border-color: var(--white); background: rgba(255,255,255,.08);
+      transform: translateY(-2px);
+    }
+
+    /* =========================================================
+       HERO
+    ========================================================= */
+    .hero {
+      position: relative; min-height: 100vh;
+      display: flex; align-items: center;
+      overflow: hidden;
+      background: var(--blue-950);
+    }
+
+    /* Animated mesh gradient */
+    .hero-bg {
+      position: absolute; inset: 0; z-index: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 10% 50%, rgba(37,99,235,.45) 0%, transparent 65%),
+        radial-gradient(ellipse 60% 70% at 80% 20%, rgba(96,165,250,.3) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 50% at 90% 80%, rgba(30,58,138,.6) 0%, transparent 55%),
+        linear-gradient(160deg, #0a1628 0%, #0f2044 50%, #0a1628 100%);
+      animation: meshShift 10s ease-in-out infinite alternate;
+    }
+    @keyframes meshShift {
+      0%   { filter: hue-rotate(0deg); }
+      100% { filter: hue-rotate(12deg); }
+    }
+
+    /* Grid lines */
+    .hero-grid {
+      position: absolute; inset: 0; z-index: 0; opacity: .07;
+      background-image:
+        linear-gradient(rgba(96,165,250,1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(96,165,250,1) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%);
+    }
+
+    /* Floating orbs */
+    .orb {
+      position: absolute; border-radius: 50%;
+      filter: blur(70px); pointer-events: none; z-index: 0;
+    }
+    .orb-1 {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(96,165,250,.25), transparent 70%);
+      top: -100px; left: -100px;
+      animation: floatOrb 8s ease-in-out infinite;
+    }
+    .orb-2 {
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(37,99,235,.3), transparent 70%);
+      bottom: -80px; right: 20%;
+      animation: floatOrb 10s ease-in-out infinite reverse;
+    }
+    .orb-3 {
+      width: 300px; height: 300px;
+      background: radial-gradient(circle, rgba(245,158,11,.15), transparent 70%);
+      top: 40%; right: 5%;
+      animation: floatOrb 12s ease-in-out infinite;
+    }
+    @keyframes floatOrb {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33%       { transform: translate(30px, -40px) scale(1.05); }
+      66%       { transform: translate(-20px, 20px) scale(.95); }
+    }
+
+    /* Particles canvas */
+    #particles { position: absolute; inset: 0; z-index: 0; }
+
+    .hero-content {
+      position: relative; z-index: 2;
+      display: grid; grid-template-columns: 1fr 1fr;
+      align-items: center; gap: 60px;
+      padding: 140px 40px 100px;
+      max-width: 1280px; margin: 0 auto; width: 100%;
+    }
+
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(96,165,250,.12);
+      border: 1px solid rgba(96,165,250,.25);
+      color: var(--blue-300); font-size: 12px; font-weight: 600;
+      padding: 6px 14px; border-radius: var(--radius-full);
+      margin-bottom: 20px; letter-spacing: .5px; text-transform: uppercase;
+    }
+    .hero-badge .dot {
+      width: 6px; height: 6px; border-radius: 50%; background: var(--blue-400);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: .5; transform: scale(.8); }
+    }
+
+    .hero-title {
+      font-size: clamp(42px, 5.5vw, 72px);
+      font-weight: 900;
+      line-height: 1.05;
+      letter-spacing: -2px;
+      color: var(--white);
+      margin-bottom: 24px;
+    }
+    .hero-title .gradient-text {
+      background: linear-gradient(135deg, var(--blue-300) 0%, var(--blue-400) 40%, var(--white) 100%);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-title .highlight {
+      position: relative; display: inline-block;
+      color: var(--gold-light);
+    }
+    .hero-title .highlight::after {
+      content: '';
+      position: absolute; bottom: 2px; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--gold), var(--gold-light));
+      border-radius: 2px;
+    }
+
+    .hero-desc {
+      font-size: 17px; line-height: 1.75;
+      color: rgba(255,255,255,.65);
+      margin-bottom: 36px; max-width: 480px;
+      font-weight: 400;
+    }
+
+    .hero-actions {
+      display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 48px;
+    }
+
+    .hero-stats {
+      display: flex; gap: 32px;
+      padding-top: 32px;
+      border-top: 1px solid rgba(255,255,255,.08);
+    }
+    .hero-stat { display: flex; flex-direction: column; }
+    .hero-stat strong {
+      font-size: 28px; font-weight: 800; color: var(--white); line-height: 1;
+    }
+    .hero-stat span { font-size: 12px; color: rgba(255,255,255,.5); margin-top: 4px; }
+
+    /* Hero visual side */
+    .hero-visual {
+      position: relative; display: flex; align-items: center; justify-content: center;
+    }
+
+    .hero-card-3d {
+      position: relative;
+      width: 100%; max-width: 520px;
+      transform-style: preserve-3d;
+      perspective: 1200px;
+    }
+
+    .hero-main-card {
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: var(--radius-xl);
+      backdrop-filter: blur(24px);
+      padding: 32px;
+      box-shadow: 0 32px 80px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.12);
+      transform: perspective(1000px) rotateY(-8deg) rotateX(4deg);
+      transition: transform .1s linear;
+    }
+
+    .hero-card-header {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 24px;
+    }
+    .hero-card-logo {
+      width: 44px; height: 44px; background: var(--blue-700);
+      border-radius: var(--radius-sm); display: flex; align-items: center;
+      justify-content: center; font-size: 22px;
+    }
+    .hero-card-info h3 { color: var(--white); font-size: 16px; font-weight: 700; }
+    .hero-card-info p  { color: rgba(255,255,255,.5); font-size: 12px; }
+
+    .hero-product-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;
+    }
+    .hero-product-item {
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: var(--radius-md); padding: 16px;
+      transition: background .2s;
+      cursor: default;
+    }
+    .hero-product-item:hover { background: rgba(255,255,255,.1); }
+    .hero-product-icon { font-size: 24px; margin-bottom: 8px; }
+    .hero-product-name { font-size: 13px; font-weight: 600; color: var(--white); }
+    .hero-product-count { font-size: 11px; color: rgba(255,255,255,.4); margin-top: 2px; }
+
+    .hero-card-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      padding-top: 16px; border-top: 1px solid rgba(255,255,255,.06);
+    }
+    .hero-card-footer span { font-size: 12px; color: rgba(255,255,255,.4); }
+    .badge-available {
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(34,197,94,.15);
+      border: 1px solid rgba(34,197,94,.25);
+      color: var(--green); font-size: 11px; font-weight: 600;
+      padding: 4px 10px; border-radius: var(--radius-full);
+    }
+    .badge-available .green-dot {
+      width: 5px; height: 5px; border-radius: 50%; background: var(--green);
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    /* Floating chips */
+    .float-chip {
+      position: absolute; background: rgba(15,32,68,.85);
+      border: 1px solid rgba(255,255,255,.12);
+      backdrop-filter: blur(16px);
+      border-radius: var(--radius-md); padding: 12px 18px;
+      display: flex; align-items: center; gap: 10px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.3);
+      white-space: nowrap;
+    }
+    .float-chip span { font-size: 13px; font-weight: 600; color: var(--white); }
+    .float-chip small { display: block; font-size: 10px; color: rgba(255,255,255,.4); }
+    .chip-1 { top: -20px; right: -20px; animation: floatChip 4s ease-in-out infinite; }
+    .chip-2 { bottom: 40px; left: -30px; animation: floatChip 5s ease-in-out infinite .7s; }
+    .chip-3 { top: 50%; right: -40px; transform: translateY(-50%); animation: floatChip 6s ease-in-out infinite 1.5s; }
+    @keyframes floatChip {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-10px); }
+    }
+    .chip-3 { animation: floatChip3 6s ease-in-out infinite 1.5s; }
+    @keyframes floatChip3 {
+      0%, 100% { transform: translateY(-50%); }
+      50%       { transform: translateY(calc(-50% - 10px)); }
+    }
+    .chip-icon { font-size: 20px; }
+
+    /* scroll indicator */
+    .scroll-hint {
+      position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%);
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      color: rgba(255,255,255,.3); font-size: 11px; letter-spacing: 2px;
+      text-transform: uppercase; z-index: 2; animation: fadeInUp 1s ease 2s both;
+    }
+    .scroll-arrow {
+      width: 28px; height: 48px; border: 2px solid rgba(255,255,255,.15);
+      border-radius: 14px; position: relative; overflow: hidden;
+    }
+    .scroll-arrow::after {
+      content: '';
+      position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
+      width: 4px; height: 8px; background: rgba(255,255,255,.5); border-radius: 2px;
+      animation: scrollDown 1.5s ease-in-out infinite;
+    }
+    @keyframes scrollDown {
+      0%   { top: 6px; opacity: 1; }
+      100% { top: 30px; opacity: 0; }
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translate(-50%, 20px); }
+      to   { opacity: 1; transform: translate(-50%, 0); }
+    }
+
+    /* =========================================================
+       MARQUEE STRIP
+    ========================================================= */
+    .marquee-section {
+      background: var(--blue-800);
+      padding: 18px 0; overflow: hidden;
+      border-top: 1px solid rgba(255,255,255,.06);
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .marquee-track {
+      display: flex; gap: 0;
+      animation: marquee 25s linear infinite;
+    }
+    .marquee-track:hover { animation-play-state: paused; }
+    .marquee-item {
+      display: flex; align-items: center; gap: 12px; padding: 0 40px;
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .marquee-item span { font-size: 13px; font-weight: 600; color: rgba(255,255,255,.7); }
+    .marquee-sep { width: 4px; height: 4px; border-radius: 50%; background: var(--blue-400); }
+    @keyframes marquee {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+
+    /* =========================================================
+       SECTION HEADER
+    ========================================================= */
+    .section-header { text-align: center; margin-bottom: 64px; }
+    .section-tag {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--blue-100); color: var(--blue-700);
+      font-size: 11px; font-weight: 700; padding: 5px 14px;
+      border-radius: var(--radius-full); letter-spacing: 1px;
+      text-transform: uppercase; margin-bottom: 16px;
+    }
+    .section-title {
+      font-size: clamp(32px, 4vw, 52px);
+      font-weight: 900; line-height: 1.1; letter-spacing: -1.5px;
+      color: var(--slate-900); margin-bottom: 16px;
+    }
+    .section-title em { font-style: normal; color: var(--blue-600); }
+    .section-subtitle {
+      font-size: 17px; color: var(--slate-600); max-width: 560px;
+      margin: 0 auto; line-height: 1.7;
+    }
+
+    /* =========================================================
+       CATEGORIES
+    ========================================================= */
+    .categories-section { padding: 120px 0; background: var(--white); }
+
+    .cat-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+    }
+
+    .cat-card {
+      position: relative; overflow: hidden;
+      border-radius: var(--radius-lg);
+      background: var(--slate-50);
+      border: 1px solid var(--slate-200);
+      padding: 32px 28px;
+      cursor: pointer;
+      transition: all .35s var(--ease-out);
+      text-decoration: none; display: block;
+      group: true;
+    }
+    .cat-card::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, var(--blue-600), var(--blue-800));
+      opacity: 0; transition: opacity .35s ease;
+      z-index: 0;
+    }
+    .cat-card:hover {
+      transform: translateY(-8px);
+      box-shadow: var(--shadow-lg);
+      border-color: transparent;
+    }
+    .cat-card:hover::before { opacity: 1; }
+    .cat-card:hover .cat-icon { background: rgba(255,255,255,.15); }
+    .cat-card:hover .cat-name { color: var(--white); }
+    .cat-card:hover .cat-count { color: rgba(255,255,255,.6); }
+    .cat-card:hover .cat-arrow { color: var(--white); transform: translate(4px, -4px); }
+
+    .cat-icon {
+      position: relative; z-index: 1;
+      width: 56px; height: 56px; border-radius: var(--radius-md);
+      background: var(--blue-100); color: var(--blue-700);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px; margin-bottom: 20px;
+      transition: background .35s ease;
+    }
+    .cat-name {
+      position: relative; z-index: 1;
+      font-size: 16px; font-weight: 700; color: var(--slate-900);
+      margin-bottom: 4px; transition: color .35s;
+    }
+    .cat-count {
+      position: relative; z-index: 1;
+      font-size: 13px; color: var(--slate-400); transition: color .35s;
+    }
+    .cat-arrow {
+      position: absolute; top: 20px; right: 20px; z-index: 1;
+      font-size: 18px; color: var(--slate-400);
+      transition: all .3s ease;
+    }
+
+    /* Wide card */
+    .cat-card.wide { grid-column: span 2; padding: 40px 36px; }
+    .cat-card.wide .cat-icon { width: 64px; height: 64px; font-size: 30px; }
+    .cat-card.wide .cat-name { font-size: 20px; }
+
+    /* =========================================================
+       FEATURES / WHY CHOOSE
+    ========================================================= */
+    .features-section {
+      padding: 120px 0;
+      background: linear-gradient(160deg, var(--blue-950) 0%, var(--blue-900) 60%, var(--blue-950) 100%);
+      position: relative; overflow: hidden;
+    }
+    .features-section .hero-grid { opacity: .04; }
+
+    .features-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 80px; align-items: center;
+    }
+
+    .features-text .section-tag { background: rgba(96,165,250,.12); color: var(--blue-300); }
+    .features-text .section-title { color: var(--white); text-align: left; }
+    .features-text .section-subtitle { color: rgba(255,255,255,.55); text-align: left; margin: 0 0 48px; }
+
+    .feature-list { display: flex; flex-direction: column; gap: 20px; }
+    .feature-item {
+      display: flex; gap: 16px;
+      padding: 20px 24px; border-radius: var(--radius-md);
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.07);
+      transition: all .3s ease;
+    }
+    .feature-item:hover {
+      background: rgba(255,255,255,.07);
+      border-color: rgba(96,165,250,.2);
+      transform: translateX(8px);
+    }
+    .feature-item-icon {
+      width: 44px; height: 44px; border-radius: var(--radius-sm);
+      background: rgba(37,99,235,.25);
+      border: 1px solid rgba(37,99,235,.3);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; flex-shrink: 0;
+    }
+    .feature-item-text h4 { font-size: 15px; font-weight: 700; color: var(--white); margin-bottom: 4px; }
+    .feature-item-text p  { font-size: 13px; color: rgba(255,255,255,.5); line-height: 1.6; }
+
+    .features-visual {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+    }
+    .feat-card {
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: var(--radius-lg); padding: 28px 24px;
+      backdrop-filter: blur(12px);
+      transition: all .3s ease;
+    }
+    .feat-card:hover {
+      background: rgba(255,255,255,.08);
+      border-color: rgba(96,165,250,.2);
+      transform: translateY(-4px);
+    }
+    .feat-card.accent { background: linear-gradient(135deg, rgba(37,99,235,.3), rgba(96,165,250,.1)); border-color: rgba(96,165,250,.2); }
+    .feat-card.tall { grid-row: span 2; }
+    .feat-num { font-size: 44px; font-weight: 900; color: var(--white); letter-spacing: -2px; line-height: 1; margin-bottom: 4px; }
+    .feat-num sup { font-size: 24px; font-weight: 700; vertical-align: super; }
+    .feat-label { font-size: 13px; color: rgba(255,255,255,.5); }
+    .feat-icon { font-size: 36px; margin-bottom: 16px; display: block; }
+    .feat-title { font-size: 16px; font-weight: 700; color: var(--white); margin-bottom: 6px; }
+    .feat-desc  { font-size: 13px; color: rgba(255,255,255,.45); line-height: 1.6; }
+
+    /* =========================================================
+       PRODUCTS SHOWCASE
+    ========================================================= */
+    .products-section { padding: 120px 0; background: var(--slate-50); }
+
+    .products-tabs {
+      display: flex; justify-content: center; gap: 8px; margin-bottom: 56px;
+      flex-wrap: wrap;
+    }
+    .tab-btn {
+      padding: 10px 22px; border-radius: var(--radius-full);
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      border: 1.5px solid var(--slate-200);
+      background: var(--white); color: var(--slate-600);
+      transition: all .25s ease;
+    }
+    .tab-btn.active, .tab-btn:hover {
+      background: var(--blue-600); color: var(--white);
+      border-color: var(--blue-600);
+      box-shadow: var(--shadow-blue);
+    }
+
+    .products-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
+    }
+
+    .product-card {
+      background: var(--white); border-radius: var(--radius-lg);
+      border: 1px solid var(--slate-200);
+      overflow: hidden; cursor: pointer;
+      transition: all .35s var(--ease-out);
+      text-decoration: none; display: flex; flex-direction: column;
+    }
+    .product-card:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 20px 60px rgba(0,0,0,.12);
+      border-color: var(--blue-300);
+    }
+    .product-image {
+      aspect-ratio: 4/3; overflow: hidden;
+      background: linear-gradient(135deg, var(--slate-100), var(--blue-100));
+      position: relative;
+    }
+    .product-image img {
+      width: 100%; height: 100%; object-fit: cover;
+      transition: transform .5s ease;
+    }
+    .product-card:hover .product-image img { transform: scale(1.08); }
+    .product-image-placeholder {
+      width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 64px; color: var(--blue-300);
+      background: linear-gradient(135deg, var(--blue-100), rgba(96,165,250,.1));
+    }
+    .product-badge-overlay {
+      position: absolute; top: 12px; left: 12px;
+      background: var(--blue-600); color: var(--white);
+      font-size: 10px; font-weight: 700; padding: 4px 10px;
+      border-radius: var(--radius-full); letter-spacing: .5px; text-transform: uppercase;
+    }
+    .product-info { padding: 24px; flex: 1; display: flex; flex-direction: column; }
+    .product-category { font-size: 11px; font-weight: 600; color: var(--blue-500); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+    .product-name { font-size: 17px; font-weight: 700; color: var(--slate-900); margin-bottom: 8px; line-height: 1.3; }
+    .product-desc { font-size: 13px; color: var(--slate-500); line-height: 1.6; flex: 1; }
+    .product-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--slate-100);
+    }
+    .product-status {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12px; font-weight: 500; color: var(--green);
+    }
+    .product-status .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+    .product-cta {
+      font-size: 13px; font-weight: 600; color: var(--blue-600);
+      display: flex; align-items: center; gap: 4px;
+      transition: gap .2s;
+    }
+    .product-card:hover .product-cta { gap: 8px; }
+
+    /* =========================================================
+       PROCESS / HOW IT WORKS
+    ========================================================= */
+    .process-section { padding: 120px 0; background: var(--white); }
+
+    .process-steps {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 0; position: relative; margin-top: 64px;
+    }
+    .process-steps::before {
+      content: '';
+      position: absolute; top: 36px; left: 12.5%; right: 12.5%;
+      height: 2px;
+      background: linear-gradient(90deg, var(--blue-200), var(--blue-600), var(--blue-200));
+      z-index: 0;
+    }
+    .process-step { text-align: center; padding: 0 24px; position: relative; z-index: 1; }
+    .step-circle {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: var(--white); border: 2px solid var(--blue-200);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 24px; font-size: 28px;
+      transition: all .3s ease;
+      box-shadow: 0 0 0 6px var(--white);
+    }
+    .process-step:hover .step-circle {
+      background: var(--blue-600); border-color: var(--blue-600);
+      transform: scale(1.1);
+      box-shadow: 0 0 0 6px var(--white), var(--shadow-blue);
+    }
+    .step-num {
+      position: absolute; top: -6px; right: calc(50% - 44px);
+      width: 20px; height: 20px; border-radius: 50%;
+      background: var(--blue-600); color: var(--white);
+      font-size: 10px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .step-title { font-size: 16px; font-weight: 700; color: var(--slate-900); margin-bottom: 8px; }
+    .step-desc  { font-size: 13px; color: var(--slate-500); line-height: 1.6; }
+
+    /* =========================================================
+       TESTIMONIALS
+    ========================================================= */
+    .testimonials-section {
+      padding: 120px 0;
+      background: linear-gradient(160deg, var(--slate-900) 0%, #0e1f3d 100%);
+      position: relative; overflow: hidden;
+    }
+    .testimonials-section .section-title { color: var(--white); }
+    .testimonials-section .section-subtitle { color: rgba(255,255,255,.5); }
+
+    .testimonials-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
+    }
+    .testimonial-card {
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: var(--radius-lg); padding: 32px;
+      backdrop-filter: blur(12px);
+      transition: all .3s ease;
+    }
+    .testimonial-card:hover {
+      background: rgba(255,255,255,.08);
+      border-color: rgba(96,165,250,.2);
+      transform: translateY(-6px);
+    }
+    .testimonial-card.featured {
+      background: linear-gradient(135deg, rgba(37,99,235,.2), rgba(96,165,250,.1));
+      border-color: rgba(96,165,250,.25);
+      grid-row: span 2;
+    }
+    .stars { display: flex; gap: 4px; margin-bottom: 16px; }
+    .stars span { color: var(--gold); font-size: 16px; }
+    .testimonial-quote {
+      font-size: 15px; color: rgba(255,255,255,.75); line-height: 1.8;
+      margin-bottom: 24px; font-style: italic;
+    }
+    .testimonial-card.featured .testimonial-quote { font-size: 17px; }
+    .testimonial-author { display: flex; align-items: center; gap: 12px; }
+    .author-avatar {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--blue-600), var(--blue-400));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; font-weight: 700; color: var(--white);
+      flex-shrink: 0;
+    }
+    .author-name { font-size: 14px; font-weight: 700; color: var(--white); }
+    .author-role { font-size: 12px; color: rgba(255,255,255,.4); }
+
+    /* =========================================================
+       CTA SECTION
+    ========================================================= */
+    .cta-section {
+      padding: 120px 0;
+      background: var(--white);
+      position: relative; overflow: hidden;
+    }
+    .cta-inner {
+      position: relative;
+      background: linear-gradient(135deg, var(--blue-800) 0%, var(--blue-600) 50%, var(--blue-700) 100%);
+      border-radius: var(--radius-xl);
+      padding: 80px 60px;
+      text-align: center;
+      overflow: hidden;
+    }
+    .cta-inner .hero-grid { opacity: .06; border-radius: var(--radius-xl); }
+    .cta-inner .orb-1 { width: 400px; height: 400px; top: -100px; left: -100px; opacity: .4; }
+    .cta-inner .orb-2 { width: 300px; height: 300px; bottom: -100px; right: -50px; opacity: .3; }
+    .cta-tag {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,.15); color: var(--white);
+      font-size: 11px; font-weight: 700; padding: 5px 14px;
+      border-radius: var(--radius-full); letter-spacing: 1px;
+      text-transform: uppercase; margin-bottom: 20px;
+      border: 1px solid rgba(255,255,255,.2);
+    }
+    .cta-title {
+      font-size: clamp(32px, 4vw, 52px);
+      font-weight: 900; color: var(--white);
+      line-height: 1.1; letter-spacing: -1.5px;
+      margin-bottom: 16px; position: relative; z-index: 1;
+    }
+    .cta-desc {
+      font-size: 17px; color: rgba(255,255,255,.7);
+      max-width: 520px; margin: 0 auto 40px; line-height: 1.7;
+      position: relative; z-index: 1;
+    }
+    .cta-actions {
+      display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;
+      position: relative; z-index: 1;
+    }
+    .cta-contact {
+      margin-top: 32px; font-size: 14px; color: rgba(255,255,255,.55);
+      position: relative; z-index: 1;
+    }
+    .cta-contact a { color: rgba(255,255,255,.8); font-weight: 600; text-decoration: none; }
+    .cta-contact a:hover { color: var(--white); }
+
+    /* =========================================================
+       FOOTER
+    ========================================================= */
+    .footer {
+      background: var(--blue-950);
+      border-top: 1px solid rgba(255,255,255,.05);
+      padding: 80px 0 32px;
+      color: rgba(255,255,255,.6);
+    }
+    .footer-top {
+      display: grid; grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 60px; margin-bottom: 60px;
+    }
+    .footer-brand img { width: 40px; margin-bottom: 12px; }
+    .footer-brand h3 { font-size: 20px; font-weight: 800; color: var(--white); margin-bottom: 8px; }
+    .footer-brand p { font-size: 14px; line-height: 1.7; color: rgba(255,255,255,.45); max-width: 280px; }
+    .footer-socials { display: flex; gap: 10px; margin-top: 20px; }
+    .social-btn {
+      width: 36px; height: 36px; border-radius: var(--radius-sm);
+      background: rgba(255,255,255,.07);
+      border: 1px solid rgba(255,255,255,.1);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; cursor: pointer; transition: all .2s;
+      text-decoration: none;
+    }
+    .social-btn:hover { background: var(--blue-700); border-color: var(--blue-600); transform: translateY(-2px); }
+    .footer-col h4 { font-size: 13px; font-weight: 700; color: var(--white); margin-bottom: 16px; letter-spacing: .5px; text-transform: uppercase; }
+    .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .footer-col ul a {
+      font-size: 14px; color: rgba(255,255,255,.45); text-decoration: none;
+      transition: color .2s;
+    }
+    .footer-col ul a:hover { color: var(--white); }
+    .footer-bottom {
+      padding-top: 28px; border-top: 1px solid rgba(255,255,255,.06);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .footer-bottom p { font-size: 13px; }
+    .footer-bottom-links { display: flex; gap: 24px; }
+    .footer-bottom-links a { font-size: 13px; color: rgba(255,255,255,.4); text-decoration: none; }
+    .footer-bottom-links a:hover { color: rgba(255,255,255,.7); }
+
+    /* WhatsApp FAB */
+    .wa-fab {
+      position: fixed; right: 24px; bottom: 24px; z-index: 9999;
+      width: 56px; height: 56px; border-radius: 50%;
+      background: #25D366;
+      box-shadow: 0 4px 20px rgba(37,211,102,.4);
+      display: flex; align-items: center; justify-content: center;
+      text-decoration: none; transition: all .3s var(--ease-out);
+    }
+    .wa-fab:hover { transform: scale(1.12); box-shadow: 0 8px 32px rgba(37,211,102,.5); }
+    .wa-fab svg { width: 30px; height: 30px; fill: white; }
+
+    /* =========================================================
+       RESPONSIVE
+    ========================================================= */
+    @media (max-width: 1100px) {
+      .cat-grid { grid-template-columns: repeat(3, 1fr); }
+      .cat-card.wide { grid-column: span 1; }
+      .features-grid { grid-template-columns: 1fr; gap: 60px; }
+      .features-visual { order: -1; }
+      .footer-top { grid-template-columns: 1fr 1fr; gap: 40px; }
+    }
+    @media (max-width: 900px) {
+      .hero-content { grid-template-columns: 1fr; text-align: center; padding: 120px 24px 80px; }
+      .hero-visual { display: none; }
+      .hero-actions { justify-content: center; }
+      .hero-stats { justify-content: center; }
+      .hero-desc { margin: 0 auto 36px; }
+      .products-grid { grid-template-columns: 1fr 1fr; }
+      .testimonials-grid { grid-template-columns: 1fr; }
+      .testimonial-card.featured { grid-row: span 1; }
+      .process-steps { grid-template-columns: 1fr 1fr; gap: 32px; }
+      .process-steps::before { display: none; }
+      .container { padding: 0 24px; }
+      .nav-links { display: none; }
+    }
+    @media (max-width: 640px) {
+      .cat-grid { grid-template-columns: 1fr 1fr; }
+      .products-grid { grid-template-columns: 1fr; }
+      .features-visual { grid-template-columns: 1fr 1fr; }
+      .feat-card.tall { grid-row: span 1; }
+      .cta-inner { padding: 48px 28px; }
+      .footer-top { grid-template-columns: 1fr; }
+      .nav-cta .btn-ghost { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===================== NAV ===================== -->
+  <nav class="nav-bar" id="navbar">
+    <div class="nav-inner">
+      <a href="index.php" class="nav-logo">
+        <img src="icono_logo.png" alt="Ofiequipo" onerror="this.style.display='none'" />
+        <div class="nav-logo-text">
+          <strong>Ofiequipo</strong>
+          <small>de Tampico</small>
+        </div>
+      </a>
+      <ul class="nav-links">
+        <li><a href="catalogo.php">Catálogo</a></li>
+        <li><a href="#categorias">Categorías</a></li>
+        <li><a href="#nosotros">Nosotros</a></li>
+        <li><a href="#contacto">Contacto</a></li>
+      </ul>
+      <div class="nav-cta">
+        <a href="carrito.php" class="btn btn-ghost">🛒 Carrito</a>
+        <a href="catalogo.php" class="btn btn-primary">Ver Catálogo →</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ===================== HERO ===================== -->
+  <section class="hero noise">
+    <div class="hero-bg"></div>
+    <div class="hero-grid"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+    <canvas id="particles"></canvas>
+
+    <div class="hero-content">
+      <!-- Left -->
+      <div class="hero-text">
+        <div class="hero-badge reveal stagger-1">
+          <span class="dot"></span>
+          Mobiliario Corporativo Premium
+        </div>
+        <h1 class="hero-title reveal stagger-2">
+          Equipa tu
+          <span class="highlight"> oficina</span><br/>
+          con el mejor
+          <span class="gradient-text"> diseño.</span>
+        </h1>
+        <p class="hero-desc reveal stagger-3">
+          Sillería, escritorios, islas de trabajo, mesas de juntas y más.
+          Todo lo que necesitas para crear espacios de trabajo excepcionales en Tampico y el noreste de México.
+        </p>
+        <div class="hero-actions reveal stagger-4">
+          <a href="catalogo.php" class="btn btn-primary btn-xl">
+            Explorar Catálogo
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </a>
+          <a href="#contacto" class="btn btn-outline-white btn-xl">Cotizar Ahora</a>
+        </div>
+        <div class="hero-stats reveal stagger-5">
+          <div class="hero-stat">
+            <strong id="counter-products">0</strong>
+            <span>Productos</span>
+          </div>
+          <div class="hero-stat">
+            <strong id="counter-cats">0</strong>
+            <span>Categorías</span>
+          </div>
+          <div class="hero-stat">
+            <strong id="counter-years">0</strong>
+            <span>Años en el mercado</span>
+          </div>
+          <div class="hero-stat">
+            <strong id="counter-clients">0+</strong>
+            <span>Clientes satisfechos</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right – 3D Card -->
+      <div class="hero-visual">
+        <div class="hero-card-3d" id="card3d">
+          <div class="hero-main-card" id="mainCard">
+            <div class="hero-card-header">
+              <div class="hero-card-logo">🏢</div>
+              <div class="hero-card-info">
+                <h3>Ofiequipo Tampico</h3>
+                <p>Catálogo de productos</p>
+              </div>
+            </div>
+            <div class="hero-product-grid">
+              <div class="hero-product-item">
+                <div class="hero-product-icon">🪑</div>
+                <div class="hero-product-name">Sillería</div>
+                <div class="hero-product-count">Sillas ejecutivas y más</div>
+              </div>
+              <div class="hero-product-item">
+                <div class="hero-product-icon">🖥️</div>
+                <div class="hero-product-name">Escritorios</div>
+                <div class="hero-product-count">Diseños modernos</div>
+              </div>
+              <div class="hero-product-item">
+                <div class="hero-product-icon">🏝️</div>
+                <div class="hero-product-name">Islas de Trabajo</div>
+                <div class="hero-product-count">Para equipos</div>
+              </div>
+              <div class="hero-product-item">
+                <div class="hero-product-icon">📋</div>
+                <div class="hero-product-name">Recepción</div>
+                <div class="hero-product-count">Primera impresión</div>
+              </div>
+            </div>
+            <div class="hero-card-footer">
+              <span>Envío a todo el noreste</span>
+              <div class="badge-available">
+                <span class="green-dot"></span>
+                Disponible
+              </div>
+            </div>
+          </div>
+
+          <!-- Floating chips -->
+          <div class="float-chip chip-1">
+            <span class="chip-icon">⭐</span>
+            <div>
+              <span>Calidad Premium</span>
+              <small>Garantía incluida</small>
+            </div>
+          </div>
+          <div class="float-chip chip-2">
+            <span class="chip-icon">🚚</span>
+            <div>
+              <span>Envío rápido</span>
+              <small>Noreste de México</small>
+            </div>
+          </div>
+          <div class="float-chip chip-3">
+            <span class="chip-icon">💬</span>
+            <div>
+              <span>Cotización gratis</span>
+              <small>Sin compromiso</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="scroll-hint">
+      <div class="scroll-arrow"></div>
+      <span>Scroll</span>
+    </div>
+  </section>
+
+  <!-- ===================== MARQUEE ===================== -->
+  <div class="marquee-section" aria-hidden="true">
+    <div class="marquee-track" id="marqueeTrack">
+      <div class="marquee-item"><span>🪑 Sillería Ejecutiva</span><span class="marquee-sep"></span></div>
+      <div class="marquee-item"><span>🖥️ Escritorios Modernos</span><span class="marquee-sep"></span></div>
+      <div class="marquee-item"><span>🏝️ Islas de Trabajo</span><span class="marquee-sep"></span></div>
+      <div class="marquee-item"><span>🤝 Mesas de Juntas</span><span class="marquee-sep"></span></div>
+      <div class="marquee-item"><span>📚 Libreros</span><span class="marquee-sep"></span></div>
+      <div class="marquee-item"><span>🏠 Recepción</span><span class="marquee-sep"></span></div>
+      <div class="marquee-item"><span>📦 Almacenaje</span><span class="marquee-sep"></span></div>
+      <div class="marquee-item"><span>🇮🇹 Línea Italia</span><span class="marquee-sep"></span></div>
+      <div class="marquee-item"><span>⚙️ Metálico</span><span class="marquee-sep"></span></div>
+      <div class="marquee-item"><span>✨ Diseño Premium</span><span class="marquee-sep"></span></div>
+      <!-- duplicate for seamless loop -->
+      <div class="marquee-item"><span>🪑 Sillería Ejecutiva</span><span class="marquee-sep"></span></div>
+      <div class="marquee-item"><span>🖥️ Escritorios Modernos</span><span class="marquee-sep"></span></div>
+      <div class="marquee-item"><span>🏝️ Islas de Trabajo</span><span class="marquee-sep"></span></div>
+      <div class="marquee-item"><span>🤝 Mesas de Juntas</span><span class="marquee-sep"></span></div>
+      <div class="marquee-item"><span>📚 Libreros</span><span class="marquee-sep"></span></div>
+      <div class="marquee-item"><span>🏠 Recepción</span><span class="marquee-sep"></span></div>
+      <div class="marquee-item"><span>📦 Almacenaje</span><span class="marquee-sep"></span></div>
+      <div class="marquee-item"><span>🇮🇹 Línea Italia</span><span class="marquee-sep"></span></div>
+      <div class="marquee-item"><span>⚙️ Metálico</span><span class="marquee-sep"></span></div>
+      <div class="marquee-item"><span>✨ Diseño Premium</span><span class="marquee-sep"></span></div>
+    </div>
+  </div>
+
+  <!-- ===================== CATEGORIES ===================== -->
+  <section class="categories-section" id="categorias">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-tag reveal">🗂️ Nuestras Categorías</div>
+        <h2 class="section-title reveal stagger-1">Todo para tu <em>espacio de trabajo</em></h2>
+        <p class="section-subtitle reveal stagger-2">Desde sillas ejecutivas hasta islas de trabajo colaborativas, tenemos el mobiliario perfecto para cada necesidad.</p>
+      </div>
+
+      <div class="cat-grid">
+        <a href="catalogo.php?categoria=silleria" class="cat-card wide reveal stagger-1">
+          <div class="cat-icon">🪑</div>
+          <div class="cat-name">Sillería</div>
+          <div class="cat-count">Sillas ejecutivas, operativas y salas</div>
+          <span class="cat-arrow">↗</span>
+        </a>
+        <a href="catalogo.php?categoria=escritorios" class="cat-card reveal stagger-2">
+          <div class="cat-icon">🖥️</div>
+          <div class="cat-name">Escritorios</div>
+          <div class="cat-count">Modernos y ejecutivos</div>
+          <span class="cat-arrow">↗</span>
+        </a>
+        <a href="catalogo.php?categoria=islas" class="cat-card reveal stagger-3">
+          <div class="cat-icon">🏝️</div>
+          <div class="cat-name">Islas de Trabajo</div>
+          <div class="cat-count">Colaboración en equipo</div>
+          <span class="cat-arrow">↗</span>
+        </a>
+        <a href="catalogo.php?categoria=mesas" class="cat-card reveal stagger-1">
+          <div class="cat-icon">🤝</div>
+          <div class="cat-name">Mesas de Juntas</div>
+          <div class="cat-count">Para reuniones profesionales</div>
+          <span class="cat-arrow">↗</span>
+        </a>
+        <a href="catalogo.php?categoria=recepcion" class="cat-card reveal stagger-2">
+          <div class="cat-icon">🏠</div>
+          <div class="cat-name">Recepción</div>
+          <div class="cat-count">Primera impresión perfecta</div>
+          <span class="cat-arrow">↗</span>
+        </a>
+        <a href="catalogo.php?categoria=libreros" class="cat-card reveal stagger-3">
+          <div class="cat-icon">📚</div>
+          <div class="cat-name">Libreros</div>
+          <div class="cat-count">Organización y estilo</div>
+          <span class="cat-arrow">↗</span>
+        </a>
+        <a href="catalogo.php?categoria=almacenaje" class="cat-card reveal stagger-1">
+          <div class="cat-icon">📦</div>
+          <div class="cat-name">Almacenaje</div>
+          <div class="cat-count">Archiveros y cajoneras</div>
+          <span class="cat-arrow">↗</span>
+        </a>
+        <a href="catalogo.php?categoria=italia" class="cat-card reveal stagger-2">
+          <div class="cat-icon">🇮🇹</div>
+          <div class="cat-name">Línea Italia</div>
+          <div class="cat-count">Diseño europeo exclusivo</div>
+          <span class="cat-arrow">↗</span>
+        </a>
+        <a href="catalogo.php?categoria=metalico" class="cat-card reveal stagger-3">
+          <div class="cat-icon">⚙️</div>
+          <div class="cat-name">Metálico</div>
+          <div class="cat-count">Resistente y duradero</div>
+          <span class="cat-arrow">↗</span>
+        </a>
+        <a href="catalogo.php?categoria=mesas-trabajo" class="cat-card reveal stagger-1">
+          <div class="cat-icon">📐</div>
+          <div class="cat-name">Mesas de Trabajo</div>
+          <div class="cat-count">Eficiencia garantizada</div>
+          <span class="cat-arrow">↗</span>
+        </a>
+        <a href="catalogo.php" class="cat-card wide reveal stagger-2" style="background: linear-gradient(135deg, var(--blue-100), rgba(96,165,250,.1)); border: 1.5px dashed var(--blue-300);">
+          <div class="cat-icon" style="background:var(--blue-200)">🔍</div>
+          <div class="cat-name" style="color:var(--blue-700)">Ver Todo el Catálogo</div>
+          <div class="cat-count" style="color:var(--blue-500)">+33 productos disponibles</div>
+          <span class="cat-arrow" style="color:var(--blue-500)">→</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== FEATURES ===================== -->
+  <section class="features-section noise" id="nosotros">
+    <div class="hero-grid"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="container" style="position:relative;z-index:2;">
+      <div class="features-grid">
+        <div class="features-text">
+          <div class="section-tag reveal">✨ ¿Por qué elegirnos?</div>
+          <h2 class="section-title reveal stagger-1">La diferencia<br/><em>Ofiequipo</em></h2>
+          <p class="section-subtitle reveal stagger-2">Más de una década equipando empresas en Tampico y el noreste de México con mobiliario de calidad superior.</p>
+          <div class="feature-list">
+            <div class="feature-item reveal stagger-1">
+              <div class="feature-item-icon">🏆</div>
+              <div class="feature-item-text">
+                <h4>Calidad Garantizada</h4>
+                <p>Todos nuestros productos pasan estrictos controles de calidad. Garantía en cada compra.</p>
+              </div>
+            </div>
+            <div class="feature-item reveal stagger-2">
+              <div class="feature-item-icon">🚚</div>
+              <div class="feature-item-text">
+                <h4>Entrega e Instalación</h4>
+                <p>Servicio de entrega e instalación en Tampico y toda la región noreste de México.</p>
+              </div>
+            </div>
+            <div class="feature-item reveal stagger-3">
+              <div class="feature-item-icon">💡</div>
+              <div class="feature-item-text">
+                <h4>Asesoría Personalizada</h4>
+                <p>Nuestro equipo te ayuda a elegir el mobiliario ideal para tu espacio y presupuesto.</p>
+              </div>
+            </div>
+            <div class="feature-item reveal stagger-4">
+              <div class="feature-item-icon">💰</div>
+              <div class="feature-item-text">
+                <h4>Cotización sin Compromiso</h4>
+                <p>Solicita tu cotización gratis y recibe una propuesta personalizada en 24 horas.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="features-visual reveal stagger-2">
+          <div class="feat-card accent">
+            <span class="feat-icon">🏢</span>
+            <div class="feat-title">Empresa Local</div>
+            <div class="feat-desc">Ubicados en Tampico, Tamaulipas. Servicio presencial disponible.</div>
+          </div>
+          <div class="feat-card">
+            <div class="feat-num">33<sup>+</sup></div>
+            <div class="feat-label">Productos en catálogo</div>
+          </div>
+          <div class="feat-card tall">
+            <span class="feat-icon">📦</span>
+            <div class="feat-title">Stock Disponible</div>
+            <div class="feat-desc">Gran mayoría de productos disponibles para entrega inmediata. Sin tiempos de espera largos.</div>
+            <div style="margin-top:20px; display:flex; gap:8px; flex-wrap:wrap;">
+              <span style="background:rgba(34,197,94,.15);color:#22c55e;font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;border:1px solid rgba(34,197,94,.2);">✓ En stock</span>
+              <span style="background:rgba(96,165,250,.15);color:#60a5fa;font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;border:1px solid rgba(96,165,250,.2);">✓ Entrega rápida</span>
+            </div>
+          </div>
+          <div class="feat-card">
+            <div class="feat-num">10<sup>+</sup></div>
+            <div class="feat-label">Años de experiencia</div>
+          </div>
+          <div class="feat-card accent">
+            <span class="feat-icon">⭐</span>
+            <div class="feat-title">Clientes Felices</div>
+            <div class="feat-desc">Cientos de empresas en Tamaulipas confían en nosotros.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== PRODUCTS SHOWCASE ===================== -->
+  <section class="products-section">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-tag reveal">🛋️ Destacados</div>
+        <h2 class="section-title reveal stagger-1">Productos <em>más populares</em></h2>
+        <p class="section-subtitle reveal stagger-2">Descubre nuestra selección de mobiliario más solicitado por empresas en toda la región.</p>
+      </div>
+
+      <div class="products-tabs reveal stagger-1">
+        <button class="tab-btn active">Todos</button>
+        <button class="tab-btn">Sillería</button>
+        <button class="tab-btn">Escritorios</button>
+        <button class="tab-btn">Mesas</button>
+        <button class="tab-btn">Recepción</button>
+      </div>
+
+      <div class="products-grid">
+        <!-- Product cards -->
+        <a href="catalogo.php" class="product-card reveal stagger-1">
+          <div class="product-image">
+            <div class="product-image-placeholder">🪑</div>
+            <span class="product-badge-overlay">Más vendido</span>
+          </div>
+          <div class="product-info">
+            <div class="product-category">Sillería</div>
+            <div class="product-name">Silla Ejecutiva Premium</div>
+            <div class="product-desc">Diseño ergonómico con soporte lumbar ajustable. Ideal para largas jornadas de trabajo.</div>
+            <div class="product-footer">
+              <div class="product-status"><span class="dot"></span>En stock</div>
+              <div class="product-cta">Cotizar <span>→</span></div>
+            </div>
+          </div>
+        </a>
+
+        <a href="catalogo.php" class="product-card reveal stagger-2">
+          <div class="product-image">
+            <div class="product-image-placeholder">🖥️</div>
+          </div>
+          <div class="product-info">
+            <div class="product-category">Escritorios</div>
+            <div class="product-name">Escritorio Gerencial Moderno</div>
+            <div class="product-desc">Superficie amplia con acabado en madera de alta calidad y estructura metálica robusta.</div>
+            <div class="product-footer">
+              <div class="product-status"><span class="dot"></span>En stock</div>
+              <div class="product-cta">Cotizar <span>→</span></div>
+            </div>
+          </div>
+        </a>
+
+        <a href="catalogo.php" class="product-card reveal stagger-3">
+          <div class="product-image">
+            <div class="product-image-placeholder">🤝</div>
+            <span class="product-badge-overlay">Nuevo</span>
+          </div>
+          <div class="product-info">
+            <div class="product-category">Mesas de Juntas</div>
+            <div class="product-name">Mesa de Conferencias Elite</div>
+            <div class="product-desc">Perfecta para salas de reuniones de 8 a 12 personas. Diseño contemporáneo y funcional.</div>
+            <div class="product-footer">
+              <div class="product-status"><span class="dot"></span>En stock</div>
+              <div class="product-cta">Cotizar <span>→</span></div>
+            </div>
+          </div>
+        </a>
+
+        <a href="catalogo.php" class="product-card reveal stagger-1">
+          <div class="product-image">
+            <div class="product-image-placeholder">🏝️</div>
+          </div>
+          <div class="product-info">
+            <div class="product-category">Islas de Trabajo</div>
+            <div class="product-name">Isla Colaborativa 6 Puestos</div>
+            <div class="product-desc">Espacio de trabajo compartido con gestión de cables integrada y divisiones modulares.</div>
+            <div class="product-footer">
+              <div class="product-status"><span class="dot"></span>En stock</div>
+              <div class="product-cta">Cotizar <span>→</span></div>
+            </div>
+          </div>
+        </a>
+
+        <a href="catalogo.php" class="product-card reveal stagger-2">
+          <div class="product-image">
+            <div class="product-image-placeholder">🏠</div>
+          </div>
+          <div class="product-info">
+            <div class="product-category">Recepción</div>
+            <div class="product-name">Mueble de Recepción Curvo</div>
+            <div class="product-desc">Diseño moderno en forma curva con acabado en laminado de alta resistencia.</div>
+            <div class="product-footer">
+              <div class="product-status"><span class="dot"></span>En stock</div>
+              <div class="product-cta">Cotizar <span>→</span></div>
+            </div>
+          </div>
+        </a>
+
+        <a href="catalogo.php" class="product-card reveal stagger-3">
+          <div class="product-image">
+            <div class="product-image-placeholder">🇮🇹</div>
+            <span class="product-badge-overlay">Exclusivo</span>
+          </div>
+          <div class="product-info">
+            <div class="product-category">Línea Italia</div>
+            <div class="product-name">Escritorio Línea Italia L</div>
+            <div class="product-desc">Diseño europeo de alta gama. Combinación de madera y vidrio templado para espacios ejecutivos.</div>
+            <div class="product-footer">
+              <div class="product-status"><span class="dot"></span>En stock</div>
+              <div class="product-cta">Cotizar <span>→</span></div>
+            </div>
+          </div>
+        </a>
+      </div>
+
+      <div style="text-align:center; margin-top:48px;" class="reveal">
+        <a href="catalogo.php" class="btn btn-primary btn-lg">
+          Ver todo el catálogo
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== PROCESS ===================== -->
+  <section class="process-section">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-tag reveal">⚡ Proceso Simple</div>
+        <h2 class="section-title reveal stagger-1">¿Cómo <em>funciona?</em></h2>
+        <p class="section-subtitle reveal stagger-2">Obtener el mobiliario ideal para tu empresa es más fácil de lo que piensas.</p>
+      </div>
+      <div class="process-steps">
+        <div class="process-step reveal stagger-1">
+          <div class="step-circle">🔍<span class="step-num">1</span></div>
+          <div class="step-title">Explora el Catálogo</div>
+          <div class="step-desc">Navega por nuestras categorías y encuentra los productos que se adaptan a tu espacio y necesidades.</div>
+        </div>
+        <div class="process-step reveal stagger-2">
+          <div class="step-circle">🛒<span class="step-num">2</span></div>
+          <div class="step-title">Agrega al Carrito</div>
+          <div class="step-desc">Selecciona los productos de tu interés y agrégalos a tu carrito de cotización.</div>
+        </div>
+        <div class="process-step reveal stagger-3">
+          <div class="step-circle">📋<span class="step-num">3</span></div>
+          <div class="step-title">Solicita Cotización</div>
+          <div class="step-desc">Envíanos tu solicitud y recibe en 24 horas una propuesta con precios y tiempos de entrega.</div>
+        </div>
+        <div class="process-step reveal stagger-4">
+          <div class="step-circle">🚚<span class="step-num">4</span></div>
+          <div class="step-title">Recibe e Instala</div>
+          <div class="step-desc">Nuestro equipo entrega e instala tu mobiliario con cuidado y profesionalismo.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== TESTIMONIALS ===================== -->
+  <section class="testimonials-section">
+    <div class="orb orb-1" style="opacity:.15;"></div>
+    <div class="orb orb-2" style="opacity:.1;"></div>
+    <div class="container" style="position:relative;z-index:1;">
+      <div class="section-header">
+        <div class="section-tag reveal" style="background:rgba(96,165,250,.12);color:var(--blue-300);">💬 Testimonios</div>
+        <h2 class="section-title reveal stagger-1">Lo que dicen<br/><em style="color:var(--blue-400);">nuestros clientes</em></h2>
+        <p class="section-subtitle reveal stagger-2">Empresas en Tampico y el noreste de México confían en Ofiequipo para equipar sus espacios.</p>
+      </div>
+
+      <div class="testimonials-grid">
+        <div class="testimonial-card featured reveal stagger-1">
+          <div class="stars">⭐⭐⭐⭐⭐</div>
+          <p class="testimonial-quote">
+            "Equipamos toda nuestra nueva oficina con Ofiequipo. La calidad del mobiliario es excepcional y el servicio de instalación fue impecable. Totalmente recomendado para empresas que buscan profesionalismo y calidad."
+          </p>
+          <div class="testimonial-author">
+            <div class="author-avatar">MR</div>
+            <div>
+              <div class="author-name">María Rodríguez</div>
+              <div class="author-role">Directora Administrativa · Empresa Constructora</div>
+            </div>
+          </div>
+        </div>
+        <div class="testimonial-card reveal stagger-2">
+          <div class="stars">⭐⭐⭐⭐⭐</div>
+          <p class="testimonial-quote">"El tiempo de entrega fue increíblemente rápido. Las sillas ejecutivas son exactamente lo que necesitábamos para nuestra sala de juntas."</p>
+          <div class="testimonial-author">
+            <div class="author-avatar">CL</div>
+            <div>
+              <div class="author-name">Carlos López</div>
+              <div class="author-role">Gerente General · Firma Legal</div>
+            </div>
+          </div>
+        </div>
+        <div class="testimonial-card reveal stagger-3">
+          <div class="stars">⭐⭐⭐⭐⭐</div>
+          <p class="testimonial-quote">"La asesoría personalizada nos ayudó a optimizar el espacio de la oficina. Excelente relación calidad-precio."</p>
+          <div class="testimonial-author">
+            <div class="author-avatar">AG</div>
+            <div>
+              <div class="author-name">Ana García</div>
+              <div class="author-role">Coordinadora · Clínica Médica</div>
+            </div>
+          </div>
+        </div>
+        <div class="testimonial-card reveal stagger-2">
+          <div class="stars">⭐⭐⭐⭐⭐</div>
+          <p class="testimonial-quote">"Llevamos 3 años comprando con Ofiequipo para nuestras sucursales. Siempre cumplen con calidad y servicio."</p>
+          <div class="testimonial-author">
+            <div class="author-avatar">JM</div>
+            <div>
+              <div class="author-name">José Martínez</div>
+              <div class="author-role">CEO · Grupo Empresarial Tampico</div>
+            </div>
+          </div>
+        </div>
+        <div class="testimonial-card reveal stagger-3">
+          <div class="stars">⭐⭐⭐⭐⭐</div>
+          <p class="testimonial-quote">"Los muebles de recepción transformaron la imagen de nuestra empresa. Nuestros clientes siempre comentan lo profesional que se ve."</p>
+          <div class="testimonial-author">
+            <div class="author-avatar">LV</div>
+            <div>
+              <div class="author-name">Laura Vega</div>
+              <div class="author-role">Socia · Consultoría Financiera</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== CTA ===================== -->
+  <section class="cta-section" id="contacto">
+    <div class="container">
+      <div class="cta-inner noise">
+        <div class="hero-grid"></div>
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="cta-tag reveal">🚀 ¿Listo para empezar?</div>
+        <h2 class="cta-title reveal stagger-1">Transforma tu espacio<br/>de trabajo hoy</h2>
+        <p class="cta-desc reveal stagger-2">
+          Solicita una cotización gratuita y personalizada. Nuestro equipo de expertos te ayudará a encontrar el mobiliario ideal para tu empresa.
+        </p>
+        <div class="cta-actions reveal stagger-3">
+          <a href="catalogo.php" class="btn btn-white btn-xl">
+            🛒 Ver Catálogo
+          </a>
+          <a href="https://wa.me/528001234567?text=Hola%2C%20me%20interesa%20cotizar%20mobiliario%20de%20oficina"
+             target="_blank" rel="noopener"
+             class="btn btn-outline-white btn-xl">
+            💬 Cotizar por WhatsApp
+          </a>
+        </div>
+        <p class="cta-contact reveal stagger-4">
+          También puedes llamarnos al
+          <a href="tel:+528001234567">800 123 4567</a>
+          &nbsp;·&nbsp;
+          <a href="mailto:contacto@ofiequipo.com">contacto@ofiequipo.com</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== FOOTER ===================== -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <img src="icono_logo.png" alt="Ofiequipo" onerror="this.style.display='none'" />
+          <h3>Ofiequipo de Tampico</h3>
+          <p>Tu aliado en mobiliario de oficina premium en Tampico y el noreste de México. Calidad, diseño y servicio sin igual.</p>
+          <div class="footer-socials">
+            <a href="#" class="social-btn" aria-label="Facebook">📘</a>
+            <a href="#" class="social-btn" aria-label="Instagram">📸</a>
+            <a href="#" class="social-btn" aria-label="WhatsApp">💬</a>
+            <a href="#" class="social-btn" aria-label="LinkedIn">💼</a>
+          </div>
+        </div>
+        <div class="footer-col">
+          <h4>Productos</h4>
+          <ul>
+            <li><a href="catalogo.php">Sillería</a></li>
+            <li><a href="catalogo.php">Escritorios</a></li>
+            <li><a href="catalogo.php">Islas de Trabajo</a></li>
+            <li><a href="catalogo.php">Mesas de Juntas</a></li>
+            <li><a href="catalogo.php">Recepción</a></li>
+            <li><a href="catalogo.php">Línea Italia</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Empresa</h4>
+          <ul>
+            <li><a href="#nosotros">Nosotros</a></li>
+            <li><a href="catalogo.php">Catálogo</a></li>
+            <li><a href="carrito.php">Cotizar</a></li>
+            <li><a href="login.php">Mi Cuenta</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Contacto</h4>
+          <ul>
+            <li><a href="#">📍 Tampico, Tamaulipas</a></li>
+            <li><a href="tel:+528001234567">📞 800 123 4567</a></li>
+            <li><a href="mailto:contacto@ofiequipo.com">✉️ contacto@ofiequipo.com</a></li>
+            <li><a href="#">⏰ Lun–Vie 9am–6pm</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2024 Ofiequipo de Tampico. Todos los derechos reservados.</p>
+        <div class="footer-bottom-links">
+          <a href="#">Privacidad</a>
+          <a href="#">Términos</a>
+          <a href="#">Cookies</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- WhatsApp FAB -->
+  <a href="https://wa.me/528001234567?text=Hola%2C%20me%20interesa%20cotizar%20mobiliario"
+     class="wa-fab" target="_blank" rel="noopener" aria-label="WhatsApp">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+    </svg>
+  </a>
+
+  <!-- ===================== SCRIPTS ===================== -->
+  <script>
+    // ── Navbar scroll effect ──────────────────────────────────
+    const navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', () => {
+      navbar.classList.toggle('scrolled', window.scrollY > 40);
+    });
+
+    // ── Reveal on scroll ─────────────────────────────────────
+    const revealEls = document.querySelectorAll('.reveal, .reveal-left, .reveal-right');
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); } });
+    }, { threshold: 0.12 });
+    revealEls.forEach(el => io.observe(el));
+
+    // ── Counter animation ─────────────────────────────────────
+    function animateCounter(id, target, suffix = '') {
+      const el = document.getElementById(id);
+      if (!el) return;
+      let current = 0;
+      const step = Math.ceil(target / 60);
+      const timer = setInterval(() => {
+        current = Math.min(current + step, target);
+        el.textContent = current + suffix;
+        if (current >= target) clearInterval(timer);
+      }, 25);
+    }
+    const statsIO = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          animateCounter('counter-products', 33);
+          animateCounter('counter-cats', 10);
+          animateCounter('counter-years', 15);
+          animateCounter('counter-clients', 500);
+          statsIO.disconnect();
+        }
+      });
+    }, { threshold: .5 });
+    const heroStats = document.querySelector('.hero-stats');
+    if (heroStats) statsIO.observe(heroStats);
+
+    // ── 3D card tilt ──────────────────────────────────────────
+    const card3d = document.getElementById('card3d');
+    const mainCard = document.getElementById('mainCard');
+    if (card3d && mainCard) {
+      card3d.addEventListener('mousemove', (e) => {
+        const rect = card3d.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / rect.width - 0.5;
+        const y = (e.clientY - rect.top) / rect.height - 0.5;
+        mainCard.style.transform = `perspective(1000px) rotateY(${x * 20 - 8}deg) rotateX(${-y * 12 + 4}deg)`;
+      });
+      card3d.addEventListener('mouseleave', () => {
+        mainCard.style.transform = 'perspective(1000px) rotateY(-8deg) rotateX(4deg)';
+        mainCard.style.transition = 'transform .5s ease';
+      });
+      card3d.addEventListener('mouseenter', () => {
+        mainCard.style.transition = 'transform .1s linear';
+      });
+    }
+
+    // ── Particle canvas ───────────────────────────────────────
+    const canvas = document.getElementById('particles');
+    const ctx    = canvas.getContext('2d');
+    let W, H, particles = [];
+
+    function resize() {
+      W = canvas.width  = canvas.parentElement.offsetWidth;
+      H = canvas.height = canvas.parentElement.offsetHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    for (let i = 0; i < 70; i++) {
+      particles.push({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        r: Math.random() * 1.8 + .4,
+        vx: (Math.random() - .5) * .25,
+        vy: (Math.random() - .5) * .25,
+        alpha: Math.random() * .5 + .1,
+      });
+    }
+
+    function drawParticles() {
+      ctx.clearRect(0, 0, W, H);
+      particles.forEach(p => {
+        p.x += p.vx; p.y += p.vy;
+        if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
+        if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(147, 197, 253, ${p.alpha})`;
+        ctx.fill();
+      });
+      requestAnimationFrame(drawParticles);
+    }
+    drawParticles();
+
+    // ── Tab buttons ───────────────────────────────────────────
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+
+    // ── Smooth scroll for nav links ───────────────────────────
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', e => {
+        const target = document.querySelector(a.getAttribute('href'));
+        if (target) { e.preventDefault(); target.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+      });
+    });
+  </script>
+</body>
+</html>
