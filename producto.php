@@ -22,7 +22,7 @@ $stmt = $conn->prepare("
     SELECT p.*, c.nombre AS cat_nombre, c.parent_id,
            cp.nombre AS parent_nombre, cp.id AS parent_cat_id
     FROM producto p
-    LEFT JOIN categoria c  ON p.id_categoria = c.id
+    LEFT JOIN categoria c  ON p.categoria_id = c.id
     LEFT JOIN categoria cp ON c.parent_id    = cp.id
     WHERE p.id = ?
 ");
@@ -37,9 +37,9 @@ $inCart    = !empty(array_filter($_SESSION['cart'] ?? [], fn($i) => $i['id'] ===
 
 // Related products (same category)
 $related = [];
-if ($producto['id_categoria']) {
-    $rs = $conn->prepare("SELECT id, nombre, descripcion, imagen FROM producto WHERE id_categoria = ? AND id != ? ORDER BY id DESC LIMIT 8");
-    $rs->bind_param('ii', $producto['id_categoria'], $id);
+if ($producto['categoria_id']) {
+    $rs = $conn->prepare("SELECT id, nombre, descripcion, imagen FROM producto WHERE categoria_id = ? AND id != ? ORDER BY id DESC LIMIT 8");
+    $rs->bind_param('ii', $producto['categoria_id'], $id);
     $rs->execute();
     $related = $rs->get_result()->fetch_all(MYSQLI_ASSOC);
     $rs->close();
@@ -629,7 +629,7 @@ $cartCount = array_sum(array_column($_SESSION['cart'] ?? [], 'cantidad'));
                                         </div>
                                         <div class="navbar-subcategory-menu">
                                             <?php foreach ($subCats as $subCat):
-                                                $cst = $conn->prepare("SELECT COUNT(*) AS cnt FROM producto WHERE id_categoria = ?");
+                                                $cst = $conn->prepare("SELECT COUNT(*) AS cnt FROM producto WHERE categoria_id = ?");
                                                 $cst->bind_param("i", $subCat['id']);
                                                 $cst->execute();
                                                 $catCount = $cst->get_result()->fetch_assoc()['cnt'] ?? 0;
@@ -653,7 +653,7 @@ $cartCount = array_sum(array_column($_SESSION['cart'] ?? [], 'cantidad'));
                                 $ost->close();
                                 if ($orow):
                                     $oCatId = $orow['id'];
-                                    $oct = $conn->prepare("SELECT COUNT(*) AS cnt FROM producto WHERE id_categoria = ?");
+                                    $oct = $conn->prepare("SELECT COUNT(*) AS cnt FROM producto WHERE categoria_id = ?");
                                     $oct->bind_param("i", $oCatId);
                                     $oct->execute();
                                     $catCount = $oct->get_result()->fetch_assoc()['cnt'] ?? 0;
@@ -696,7 +696,7 @@ $cartCount = array_sum(array_column($_SESSION['cart'] ?? [], 'cantidad'));
             <a href="catalogo.php">Catálogo</a>
             <?php if ($producto['cat_nombre']): ?>
                 <span class="breadcrumb-sep">›</span>
-                <a href="catalogo.php?categoria=<?= (int)$producto['id_categoria'] ?>">
+                <a href="catalogo.php?categoria=<?= (int)$producto['categoria_id'] ?>">
                     <?= htmlspecialchars($producto['cat_nombre']) ?>
                 </a>
             <?php endif; ?>

@@ -105,7 +105,7 @@ if (!empty($cats)) {
         // Si tiene subcategorías, obtener productos de todas ellas
         if (!empty($subCatIds)) {
             $placeholders = str_repeat('?,', count($subCatIds) - 1) . '?';
-            $stmt = $conn->prepare("SELECT id, nombre, descripcion, imagen, Stock, `Destacado` FROM producto WHERE id_categoria IN ($placeholders) ORDER BY id DESC LIMIT 6");
+            $stmt = $conn->prepare("SELECT id, nombre, descripcion, imagen, stock, destacado FROM producto WHERE categoria_id IN ($placeholders) ORDER BY id DESC LIMIT 6");
             $stmt->bind_param(str_repeat('i', count($subCatIds)), ...$subCatIds);
             $stmt->execute();
             $res = $stmt->get_result();
@@ -115,7 +115,7 @@ if (!empty($cats)) {
             $stmt->close();
         } else {
             // Si no tiene subcategorías, obtener productos directamente de la categoría principal
-            $stmt = $conn->prepare("SELECT id, nombre, descripcion, imagen, Stock, `Destacado` FROM producto WHERE id_categoria = ? ORDER BY id DESC LIMIT 6");
+            $stmt = $conn->prepare("SELECT id, nombre, descripcion, imagen, stock, destacado FROM producto WHERE categoria_id = ? ORDER BY id DESC LIMIT 6");
             $stmt->bind_param("i", $c['id']);
             $stmt->execute();
             $res = $stmt->get_result();
@@ -162,7 +162,7 @@ if ($cols) {
 // Obtener destacados (si hay columna) o fallback a últimos 8 productos
 $featuredProducts = [];
 if ($destCol) {
-    $stmtF = $conn->prepare("SELECT id, nombre, descripcion, imagen, Stock FROM producto WHERE `$destCol` = 1 ORDER BY id DESC LIMIT 8");
+    $stmtF = $conn->prepare("SELECT id, nombre, descripcion, imagen, stock FROM producto WHERE `$destCol` = 1 ORDER BY id DESC LIMIT 8");
     if ($stmtF) {
         $stmtF->execute();
         $resF = $stmtF->get_result();
@@ -172,7 +172,7 @@ if ($destCol) {
         $stmtF->close();
     }
 } else {
-    $resF = $conn->query("SELECT id, nombre, descripcion, imagen, Stock FROM producto ORDER BY id DESC LIMIT 8");
+    $resF = $conn->query("SELECT id, nombre, descripcion, imagen, stock FROM producto ORDER BY id DESC LIMIT 8");
     if ($resF)
         while ($p = $resF->fetch_assoc())
             $featuredProducts[] = $p;
@@ -2677,7 +2677,7 @@ if ($destCol) {
                                         <div class="navbar-subcategory-menu">
                                             <?php foreach ($subCats as $subCat):
                                                 // Contar productos por subcategoría
-                                                $countStmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM producto WHERE id_categoria = ?");
+                                                $countStmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM producto WHERE categoria_id = ?");
                                                 $countStmt->bind_param("i", $subCat['id']);
                                                 $countStmt->execute();
                                                 $catCount = $countStmt->get_result()->fetch_assoc()['cnt'] ?? 0;
@@ -2710,7 +2710,7 @@ if ($destCol) {
                                     $stmt->close();
 
                                     // Contar productos por categoría
-                                    $countStmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM producto WHERE id_categoria = ?");
+                                    $countStmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM producto WHERE categoria_id = ?");
                                     $countStmt->bind_param("i", $otherCatId);
                                     $countStmt->execute();
                                     $catCount = $countStmt->get_result()->fetch_assoc()['cnt'] ?? 0;
@@ -2894,7 +2894,7 @@ if ($destCol) {
 
                         if (!empty($subCatIds)) {
                             $placeholders = str_repeat('?,', count($subCatIds) - 1) . '?';
-                            $escritorioStmt = $conn->prepare("SELECT imagen FROM producto WHERE id_categoria IN ($placeholders) AND imagen IS NOT NULL AND imagen != '' ORDER BY id DESC LIMIT 1");
+                            $escritorioStmt = $conn->prepare("SELECT imagen FROM producto WHERE categoria_id IN ($placeholders) AND imagen IS NOT NULL AND imagen != '' ORDER BY id DESC LIMIT 1");
                             $escritorioStmt->bind_param(str_repeat('i', count($subCatIds)), ...$subCatIds);
                             $escritorioStmt->execute();
                             $escritorioResult = $escritorioStmt->get_result();
@@ -2932,7 +2932,7 @@ if ($destCol) {
 
                             while ($sillaRow = $sillaResult->fetch_assoc()) {
                                 // Buscar producto de sillas con mejor imagen
-                                $sillaProductStmt = $conn->prepare("SELECT imagen, nombre FROM producto WHERE id_categoria = ? AND imagen IS NOT NULL AND imagen != '' AND nombre NOT LIKE '%sofá%' AND nombre NOT LIKE '%sofa%' ORDER BY id DESC LIMIT 5");
+                                $sillaProductStmt = $conn->prepare("SELECT imagen, nombre FROM producto WHERE categoria_id = ? AND imagen IS NOT NULL AND imagen != '' AND nombre NOT LIKE '%sofá%' AND nombre NOT LIKE '%sofa%' ORDER BY id DESC LIMIT 5");
                                 $sillaProductStmt->bind_param("i", $sillaRow['id']);
                                 $sillaProductStmt->execute();
                                 $sillaProductResult = $sillaProductStmt->get_result();
