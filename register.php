@@ -1,8 +1,16 @@
 <?php
+session_start();
 require_once __DIR__ . '/apis/db.php';
 
+if (!empty($_SESSION['user_id'])) {
+    header('Location: index.php');
+    exit;
+}
+
 $error = '';
-$success = '';
+
+/** Rol "cliente" en db/Ofi_com.sql (INSERT IGNORE roles (2, 'cliente')) */
+const REGISTRO_ROL_CLIENTE = 2;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nombre   = trim($_POST['nombre']   ?? '');
@@ -16,9 +24,72 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Las contraseñas no coinciden.';
     } elseif (strlen($password) < 6) {
         $error = 'La contraseña debe tener al menos 6 caracteres.';
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $error = 'El correo electrónico no es válido.';
     } else {
-        // TODO: implementar registro real con tabla de usuarios
-        $error = 'El sistema de registro estará disponible muy pronto.';
+        $chk = $conn->prepare('SELECT id FROM usuarios WHERE email = ? LIMIT 1');
+        if (!$chk) {
+            $error = 'No se encontró la tabla de usuarios. Ejecuta db/Ofi_com.sql en MySQL.';
+        } else {
+            $emailNorm = strtolower($email);
+            $chk->bind_param('s', $emailNorm);
+            $chk->execute();
+            if ($chk->get_result()->fetch_assoc()) {
+                $error = 'Ya existe una cuenta con ese correo.';
+                $chk->close();
+            } else {
+                $chk->close();
+                $hash = password_hash($password, PASSWORD_DEFAULT);
+                $rol  = REGISTRO_ROL_CLIENTE;
+
+                $conn->begin_transaction();
+                try {
+                    $ins = $conn->prepare(
+                        'INSERT INTO usuarios (email, contrasena_hash, rol_id) VALUES (?,?,?)'
+                    );
+                    if (!$ins) {
+                        throw new RuntimeException($conn->error);
+                    }
+                    $ins->bind_param('ssi', $emailNorm, $hash, $rol);
+                    if (!$ins->execute()) {
+                        throw new RuntimeException($ins->error);
+                    }
+                    $newId = (int) $conn->insert_id;
+                    $ins->close();
+
+                    $tc = $conn->query("SHOW TABLES LIKE 'clientes'");
+                    if ($tc && $tc->num_rows > 0) {
+                        $cli = $conn->prepare('INSERT INTO clientes (usuario_id) VALUES (?)');
+                        if (!$cli) {
+                            throw new RuntimeException($conn->error);
+                        }
+                        $cli->bind_param('i', $newId);
+                        if (!$cli->execute()) {
+                            throw new RuntimeException($cli->error);
+                        }
+                        $cli->close();
+                    }
+
+                    $conn->commit();
+
+                    session_regenerate_id(true);
+                    $_SESSION['user_id']     = $newId;
+                    $_SESSION['user_email']  = $emailNorm;
+                    $_SESSION['user_role']   = 'cliente';
+                    $_SESSION['user_nombre'] = $nombre;
+
+                    header('Location: index.php');
+                    exit;
+                } catch (Throwable $e) {
+                    $conn->rollback();
+                    if ($conn->errno === 1062) {
+                        $error = 'Ya existe una cuenta con ese correo.';
+                    } else {
+                        $error = 'No se pudo crear la cuenta. Intenta de nuevo.';
+                    }
+                }
+            }
+        }
     }
 }
 ?>
@@ -463,9 +534,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <?php if ($error): ?>
                 <div class="alert alert-error"><?= htmlspecialchars($error) ?></div>
-            <?php endif; ?>
-            <?php if ($success): ?>
-                <div class="alert alert-success"><?= htmlspecialchars($success) ?></div>
             <?php endif; ?>
 
             <form method="POST" action="">

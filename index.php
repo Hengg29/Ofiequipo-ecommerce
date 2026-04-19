@@ -2736,7 +2736,16 @@ if ($destCol) {
                 <div class="header-actions">
                     <a href="tel:8331881814" class="btn btn-secondary btn-small">Llamar</a>
                     <a href="https://wa.me/528331881814" class="btn btn-secondary btn-small">WhatsApp</a>
-                    <button class="btn btn-secondary btn-small" onclick="openAuthModal()">Iniciar Sesión</button>
+                    <?php if (!empty($_SESSION['user_id'])): ?>
+                        <?php
+                        $hdrName = trim((string) ($_SESSION['user_nombre'] ?? ''));
+                        $hdrLabel = $hdrName !== '' ? $hdrName : (string) ($_SESSION['user_email'] ?? 'Cuenta');
+                        ?>
+                        <span class="btn btn-secondary btn-small" style="cursor:default;pointer-events:none;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="<?= htmlspecialchars((string) ($_SESSION['user_email'] ?? ''), ENT_QUOTES) ?>"><?= htmlspecialchars($hdrLabel, ENT_QUOTES) ?></span>
+                        <a href="logout.php" class="btn btn-secondary btn-small">Salir</a>
+                    <?php else: ?>
+                        <button type="button" class="btn btn-secondary btn-small" onclick="openAuthModal()">Iniciar Sesión</button>
+                    <?php endif; ?>
                     <button class="btn btn-primary btn-small" onclick="openQuoteModal()">Cotizar</button>
                     <?php $cartCount = array_sum(array_column($_SESSION['cart'] ?? [], 'cantidad')); ?>
                     <button onclick="openCartDrawer()" class="btn btn-secondary btn-small" style="display:inline-flex;align-items:center;gap:6px;position:relative;cursor:pointer;">
@@ -3488,12 +3497,25 @@ if ($destCol) {
                     <h2>OFIEQUIPO<span>DE TAMPICO</span></h2>
                 </div>
                 <div class="auth-divider"></div>
-                <h3 class="auth-question">¿Ya tienes cuenta con nosotros?</h3>
-                <p class="auth-subtitle">Inicia sesión para gestionar tus cotizaciones o crea una cuenta nueva.</p>
-                <div class="auth-welcome-actions">
-                    <button class="btn btn-primary" onclick="window.location.href='login.php'">Iniciar Sesión</button>
-                    <button class="btn btn-secondary" onclick="window.location.href='register.php'">Crear Cuenta</button>
-                </div>
+                <?php if (!empty($_SESSION['user_id'])): ?>
+                    <?php
+                    $amName = trim((string) ($_SESSION['user_nombre'] ?? ''));
+                    $amHi = $amName !== '' ? $amName : (string) ($_SESSION['user_email'] ?? 'Cuenta');
+                    ?>
+                    <h3 class="auth-question">Hola, <?= htmlspecialchars($amHi, ENT_QUOTES) ?></h3>
+                    <p class="auth-subtitle">Tu sesión en la tienda está activa.</p>
+                    <div class="auth-welcome-actions">
+                        <button type="button" class="btn btn-primary" onclick="window.location.href='catalogo.php'">Ver catálogo</button>
+                        <a href="logout.php" class="btn btn-secondary" style="text-align:center;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;">Cerrar sesión</a>
+                    </div>
+                <?php else: ?>
+                    <h3 class="auth-question">¿Ya tienes cuenta con nosotros?</h3>
+                    <p class="auth-subtitle">Inicia sesión para gestionar tus cotizaciones o crea una cuenta nueva.</p>
+                    <div class="auth-welcome-actions">
+                        <button type="button" class="btn btn-primary" onclick="window.location.href='login.php'">Iniciar Sesión</button>
+                        <button type="button" class="btn btn-secondary" onclick="window.location.href='register.php'">Crear Cuenta</button>
+                    </div>
+                <?php endif; ?>
                 <p class="auth-skip"><a href="#" onclick="closeAuthModal(); return false;">Continuar sin cuenta</a></p>
             </div>
 

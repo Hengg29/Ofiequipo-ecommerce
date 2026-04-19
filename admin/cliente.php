@@ -19,7 +19,7 @@ if (!$c) {
 }
 
 $pageTitle = 'Cliente';
-$activeId  = 'clientes';
+$activeId = 'clientes';
 
 $pedidos = [];
 $st = $conn->prepare(
@@ -33,43 +33,93 @@ while ($row = $r->fetch_assoc()) {
 }
 $st->close();
 
-$nPed      = count($pedidos);
+$nPed = count($pedidos);
 $ultimoPed = $nPed ? $pedidos[0] : null;
-$freq      = $ultimoPed
+$freq = $ultimoPed
     ? ('Último pedido: ' . $ultimoPed['creado_en'] . ' · Total pedidos: ' . $nPed)
-    : 'Sin compras vinculados';
+    : 'Sin compras vinculadas';
 
 require __DIR__ . '/includes/layout.php';
 ?>
 <div class="page-head">
     <h1><?= admin_h($c['nombre'] . ' ' . $c['apellido']) ?></h1>
-    <p><a href="clientes.php" style="color: var(--accent);">← Lista</a></p>
+    <p><a href="clientes.php">← Regresar a lista de clientes</a></p>
 </div>
 
-<div class="card">
-    <h2>Datos de contacto</h2>
-    <p>Email: <?= admin_h($c['email']) ?><br>
-    Tel: <?= admin_h($c['telefono']) ?><br>
-    Alta: <?= admin_h($c['creado_en']) ?></p>
-    <p class="muted"><?= admin_h($freq) ?></p>
-    <?php if ($c['notas']): ?><p>Notas: <?= nl2br(admin_h($c['notas'])) ?></p><?php endif; ?>
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start; margin-bottom:20px;">
+    <div class="card" style="margin-bottom:0;">
+        <h2>Datos de contacto</h2>
+        <div style="display:grid; gap:10px; font-size:13px;">
+            <div>
+                <span class="muted"
+                    style="display:block; font-size:11px; text-transform:uppercase; letter-spacing:.05em; margin-bottom:2px;">Email</span>
+                <strong><?= admin_h($c['email']) ?></strong>
+            </div>
+            <div>
+                <span class="muted"
+                    style="display:block; font-size:11px; text-transform:uppercase; letter-spacing:.05em; margin-bottom:2px;">Teléfono</span>
+                <strong><?= admin_h($c['telefono']) ?: '—' ?></strong>
+            </div>
+            <div>
+                <span class="muted"
+                    style="display:block; font-size:11px; text-transform:uppercase; letter-spacing:.05em; margin-bottom:2px;">Fecha
+                    de alta</span>
+                <strong><?= admin_h($c['creado_en']) ?></strong>
+            </div>
+        </div>
+    </div>
+    <div class="card" style="margin-bottom:0;">
+        <h2>Resumen de actividad</h2>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+            <div>
+                <span class="muted"
+                    style="display:block; font-size:11px; text-transform:uppercase; letter-spacing:.05em; margin-bottom:2px;">Pedidos</span>
+                <div style="font-family:'Manrope',sans-serif; font-weight:800; font-size:1.5rem;"><?= $nPed ?></div>
+            </div>
+            <div>
+                <span class="muted"
+                    style="display:block; font-size:11px; text-transform:uppercase; letter-spacing:.05em; margin-bottom:2px;">Estado</span>
+                <div style="font-size:13px; color:var(--text-secondary);"><?= admin_h($freq) ?></div>
+            </div>
+        </div>
+        <?php if ($c['notas']): ?>
+            <div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--border-light);">
+                <span class="muted"
+                    style="display:block; font-size:11px; text-transform:uppercase; letter-spacing:.05em; margin-bottom:4px;">Notas</span>
+                <p style="font-size:13px; color:var(--text-secondary);"><?= nl2br(admin_h($c['notas'])) ?></p>
+            </div>
+        <?php endif; ?>
+    </div>
 </div>
 
 <div class="card">
     <h2>Historial de pedidos</h2>
     <?php if (empty($pedidos)): ?>
-        <p class="muted">Este cliente aún no tiene <code>cliente_id</code> en pedidos. Vincula pedidos manualmente en BD o desde el checkout futuro.</p>
+        <p class="muted" style="padding:12px 0;">Este cliente aún no tiene pedidos vinculados.</p>
     <?php else: ?>
         <table class="data">
-            <tr><th>Pedido</th><th>Fecha</th><th>Estado</th><th>Total</th></tr>
-            <?php foreach ($pedidos as $p): ?>
+            <thead>
                 <tr>
-                    <td><a href="venta.php?id=<?= (int) $p['id'] ?>"><?= admin_h($p['numero_pedido']) ?></a></td>
-                    <td><?= admin_h($p['creado_en']) ?></td>
-                    <td><?= admin_h($p['estado']) ?></td>
-                    <td>$<?= number_format((float) $p['total'], 2) ?></td>
+                    <th>Pedido</th>
+                    <th>Fecha</th>
+                    <th>Estado</th>
+                    <th>Total</th>
                 </tr>
-            <?php endforeach; ?>
+            </thead>
+            <tbody>
+                <?php foreach ($pedidos as $p): ?>
+                    <tr>
+                        <td><a href="venta.php?id=<?= (int) $p['id'] ?>"
+                                style="color:var(--primary); font-weight:600; text-decoration:none;"><?= admin_h($p['numero_pedido']) ?></a>
+                        </td>
+                        <td class="muted"><?= admin_h($p['creado_en']) ?></td>
+                        <td><span
+                                class="badge <?= admin_h(str_replace(' ', '_', $p['estado'])) ?>"><?= admin_h($p['estado']) ?></span>
+                        </td>
+                        <td style="font-weight:600;">$<?= number_format((float) $p['total'], 2) ?></td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
         </table>
     <?php endif; ?>
 </div>

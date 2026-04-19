@@ -129,12 +129,18 @@ require __DIR__ . '/includes/layout.php';
     <p>Listado de pedidos con filtros y exportación CSV.</p>
 </div>
 
-<div style="display:flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;">
-    <a class="btn btn-primary" href="ventas_nuevo.php">+ Nuevo pedido</a>
-    <a class="btn btn-ghost" href="ventas.php?<?= admin_h(http_build_query(array_merge($_GET, ['export' => 'csv']))) ?>">Descargar CSV</a>
+<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:20px;">
+    <a class="btn btn-primary" href="ventas_nuevo.php">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        Nuevo pedido
+    </a>
+    <a class="btn btn-ghost" href="ventas.php?<?= admin_h(http_build_query(array_merge($_GET, ['export' => 'csv']))) ?>">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        Descargar CSV
+    </a>
 </div>
 
-<form class="filters card" method="get" style="padding:16px;">
+<form class="filters card" method="get" style="padding:18px 24px;">
     <div class="form-row" style="display:inline-block; width:auto; min-width:140px;">
         <label>Desde</label>
         <input type="date" name="desde" value="<?= admin_h($desde) ?>">
@@ -153,7 +159,7 @@ require __DIR__ . '/includes/layout.php';
         </select>
     </div>
     <div class="form-row" style="display:inline-block; width:auto; min-width:200px;">
-        <label>Cliente (nombre o email)</label>
+        <label>Cliente</label>
         <input type="text" name="cliente" value="<?= admin_h($cliente) ?>" placeholder="Buscar...">
     </div>
     <div class="form-row" style="display:inline-block; width:auto; min-width:200px;">
@@ -167,7 +173,10 @@ require __DIR__ . '/includes/layout.php';
     </div>
     <div class="form-row" style="margin-bottom:0;">
         <label>&nbsp;</label>
-        <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
+        <button type="submit" class="btn btn-primary btn-sm">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            Filtrar
+        </button>
     </div>
 </form>
 
@@ -185,15 +194,18 @@ require __DIR__ . '/includes/layout.php';
         </thead>
         <tbody>
             <?php if (empty($pedidos)): ?>
-                <tr><td colspan="6" class="muted">No hay pedidos con estos filtros.</td></tr>
+                <tr><td colspan="6" class="muted" style="text-align:center; padding:30px;">No hay pedidos con estos filtros.</td></tr>
             <?php endif; ?>
             <?php foreach ($pedidos as $p): ?>
                 <tr>
-                    <td><?= admin_h($p['numero_pedido']) ?></td>
-                    <td><?= admin_h($p['creado_en']) ?></td>
+                    <td style="font-weight:600;"><?= admin_h($p['numero_pedido']) ?></td>
+                    <td class="muted"><?= admin_h($p['creado_en']) ?></td>
                     <td><span class="badge <?= admin_h(str_replace(' ', '_', $p['estado'])) ?>"><?= admin_h($p['estado']) ?></span></td>
-                    <td><?= admin_h($p['nombre_contacto']) ?><br><span class="muted"><?= admin_h($p['email_contacto']) ?></span></td>
-                    <td>$<?= number_format((float) $p['total'], 2) ?></td>
+                    <td>
+                        <?= admin_h($p['nombre_contacto']) ?>
+                        <br><span class="muted"><?= admin_h($p['email_contacto']) ?></span>
+                    </td>
+                    <td style="font-weight:600;">$<?= number_format((float) $p['total'], 2) ?></td>
                     <td><a class="btn btn-ghost btn-sm" href="venta.php?id=<?= (int) $p['id'] ?>">Ver</a></td>
                 </tr>
             <?php endforeach; ?>
