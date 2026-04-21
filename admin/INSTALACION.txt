@@ -1,0 +1,28 @@
+PANEL ADMINISTRATIVO — INSTALACIÓN RÁPIDA
+=========================================
+
+1) Base de datos MySQL/MariaDB (misma base que la tienda, p.ej. ofiequipo):
+   - Importa o ejecuta primero db/db.sql si comienzas desde cero.
+   - Ejecuta UNA VEZ db/Ofi_com.sql
+   - Este script ya define las tablas admin_* y las columnas modernas de producto
+     las líneas ALTER que ya aplicaste manualmente.
+
+2) Acceso web:
+   - Abre /admin/login.php en tu servidor PHP.
+   - Usuario por defecto (si insertó el script):
+       Email:    admin@ofiequipo.local
+       Password: OfiequipoAdmin2026
+     Cambia la contraseña desde Usuarios > editar usuario (recomendado).
+
+3) Roles:
+   - administrador: todo el panel.
+   - vendedor: dashboard, ventas, clientes, análisis, reportes, promociones.
+   - almacen: dashboard, envíos, inventario, productos, reportes.
+
+4) Checkout público:
+   - Los pedidos creados desde la tienda pueden enlazarse a admin_pedidos en el futuro;
+     por ahora puedes registrar pedidos desde Ventas > Nuevo pedido.
+
+5) Seguridad:
+   - Protege /admin con HTTPS, contraseña fuerte y, si puedes, IP allowlist o .htaccess.
+   - No subas apis/db.php con credenciales reales al repositorio público.

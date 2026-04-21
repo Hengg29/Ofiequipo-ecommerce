@@ -545,7 +545,7 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
                                     </div>
                                     <div class="navbar-subcategory-menu">
                                         <?php foreach ($subCats as $subCat):
-                                            $cst = $conn->prepare("SELECT COUNT(*) AS cnt FROM producto WHERE id_categoria = ?");
+                                            $cst = $conn->prepare("SELECT COUNT(*) AS cnt FROM producto WHERE categoria_id = ?");
                                             $cst->bind_param("i", $subCat['id']);
                                             $cst->execute();
                                             $catCount = $cst->get_result()->fetch_assoc()['cnt'] ?? 0;
@@ -569,7 +569,7 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
                                 $ost->close();
                                 if ($orow):
                                     $oCatId = $orow['id'];
-                                    $oct = $conn->prepare("SELECT COUNT(*) AS cnt FROM producto WHERE id_categoria = ?");
+                                    $oct = $conn->prepare("SELECT COUNT(*) AS cnt FROM producto WHERE categoria_id = ?");
                                     $oct->bind_param("i", $oCatId);
                                     $oct->execute();
                                     $catCount = $oct->get_result()->fetch_assoc()['cnt'] ?? 0;

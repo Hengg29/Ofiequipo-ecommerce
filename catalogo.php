@@ -110,7 +110,7 @@ if ($categoria_parent_id > 0) {
         if (isset($subcategoryImageMap[$subId])) {
             $specificProductName = $subcategoryImageMap[$subId];
             // Usar LIKE para buscar productos que contengan el nombre (permite variaciones como "AP 3" o "AP-3")
-            $specificStmt = $conn->prepare("SELECT imagen FROM producto WHERE id_categoria = ? AND nombre LIKE ? AND imagen IS NOT NULL AND imagen != '' LIMIT 1");
+            $specificStmt = $conn->prepare("SELECT imagen FROM producto WHERE categoria_id = ? AND nombre LIKE ? AND imagen IS NOT NULL AND imagen != '' LIMIT 1");
             $searchPattern = '%' . $specificProductName . '%';
             $specificStmt->bind_param("is", $subId, $searchPattern);
             $specificStmt->execute();
@@ -126,7 +126,7 @@ if ($categoria_parent_id > 0) {
 
         // Si no se encontró producto específico, usar el comportamiento por defecto
         if ($img === '') {
-            $imgStmt = $conn->prepare("SELECT imagen FROM producto WHERE id_categoria = ? AND imagen IS NOT NULL AND imagen != '' ORDER BY id DESC LIMIT 1");
+            $imgStmt = $conn->prepare("SELECT imagen FROM producto WHERE categoria_id = ? AND imagen IS NOT NULL AND imagen != '' ORDER BY id DESC LIMIT 1");
             $imgStmt->bind_param("i", $subId);
             $imgStmt->execute();
             $imgRes = $imgStmt->get_result();
@@ -165,7 +165,7 @@ if ($categoria_parent_id > 0) {
         $placeholders = str_repeat('?,', count($subCatIds) - 1) . '?';
 
         // Contar productos
-        $countStmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM producto WHERE id_categoria IN ($placeholders)");
+        $countStmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM producto WHERE categoria_id IN ($placeholders)");
         $countStmt->bind_param(str_repeat('i', count($subCatIds)), ...$subCatIds);
         $countStmt->execute();
         $cntRes = $countStmt->get_result()->fetch_assoc();
@@ -173,7 +173,7 @@ if ($categoria_parent_id > 0) {
         $countStmt->close();
 
         // Obtener productos paginados
-        $stmt = $conn->prepare("SELECT * FROM producto WHERE id_categoria IN ($placeholders) ORDER BY nombre LIMIT ?, ?");
+        $stmt = $conn->prepare("SELECT * FROM producto WHERE categoria_id IN ($placeholders) ORDER BY nombre LIMIT ?, ?");
         $params = array_merge($subCatIds, [$offset, $perPage]);
         $stmt->bind_param(str_repeat('i', count($subCatIds)) . 'ii', ...$params);
         $stmt->execute();
@@ -182,14 +182,14 @@ if ($categoria_parent_id > 0) {
         $stmt->close();
     } else {
         // Si no tiene subcategorías, obtener productos directamente de la categoría principal
-        $countStmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM producto WHERE id_categoria = ?");
+        $countStmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM producto WHERE categoria_id = ?");
         $countStmt->bind_param("i", $categoria_parent_id);
         $countStmt->execute();
         $cntRes = $countStmt->get_result()->fetch_assoc();
         $totalProducts = (int) ($cntRes['cnt'] ?? 0);
         $countStmt->close();
 
-        $stmt = $conn->prepare("SELECT * FROM producto WHERE id_categoria = ? ORDER BY nombre LIMIT ?, ?");
+        $stmt = $conn->prepare("SELECT * FROM producto WHERE categoria_id = ? ORDER BY nombre LIMIT ?, ?");
         $stmt->bind_param("iii", $categoria_parent_id, $offset, $perPage);
         $stmt->execute();
         $res = $stmt->get_result();
@@ -198,14 +198,14 @@ if ($categoria_parent_id > 0) {
     }
 } elseif ($categoria_id > 0) {
     // Solo por categoría
-    $countStmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM producto WHERE id_categoria = ?");
+    $countStmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM producto WHERE categoria_id = ?");
     $countStmt->bind_param("i", $categoria_id);
     $countStmt->execute();
     $cntRes = $countStmt->get_result()->fetch_assoc();
     $totalProducts = (int) ($cntRes['cnt'] ?? 0);
     $countStmt->close();
 
-    $stmt = $conn->prepare("SELECT * FROM producto WHERE id_categoria = ? ORDER BY nombre LIMIT ?, ?");
+    $stmt = $conn->prepare("SELECT * FROM producto WHERE categoria_id = ? ORDER BY nombre LIMIT ?, ?");
     $stmt->bind_param("iii", $categoria_id, $offset, $perPage);
     $stmt->execute();
     $res = $stmt->get_result();
@@ -2007,7 +2007,7 @@ function pageUrl($p)
                                         <div class="navbar-subcategory-menu">
                                             <?php foreach ($subCats as $subCat):
                                                 // Contar productos por subcategoría
-                                                $countStmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM producto WHERE id_categoria = ?");
+                                                $countStmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM producto WHERE categoria_id = ?");
                                                 $countStmt->bind_param("i", $subCat['id']);
                                                 $countStmt->execute();
                                                 $catCount = $countStmt->get_result()->fetch_assoc()['cnt'] ?? 0;
@@ -2041,7 +2041,7 @@ function pageUrl($p)
                                     $stmt->close();
 
                                     // Contar productos por categoría
-                                    $countStmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM producto WHERE id_categoria = ?");
+                                    $countStmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM producto WHERE categoria_id = ?");
                                     $countStmt->bind_param("i", $otherCatId);
                                     $countStmt->execute();
                                     $catCount = $countStmt->get_result()->fetch_assoc()['cnt'] ?? 0;

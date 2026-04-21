@@ -1,18 +1,88 @@
 <?php
+session_start();
 require_once __DIR__ . '/apis/db.php';
 
 $error = '';
 $success = '';
 
+if (!empty($_SESSION['user_id'])) {
+    header('Location: index.php');
+    exit;
+}
+
+if (isset($_GET['registro']) && $_GET['registro'] === '1') {
+    $success = 'Cuenta creada correctamente. Ya puedes iniciar sesión.';
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email    = trim($_POST['email']    ?? '');
     $password = $_POST['password']      ?? '';
 
-    if (empty($email) || empty($password)) {
+    $emailInput = trim($email);
+    $emailNorm  = strtolower($emailInput);
+
+    if (empty($emailInput) || empty($password)) {
         $error = 'Por favor completa todos los campos.';
     } else {
-        // TODO: implementar autenticación real con tabla de usuarios
-        $error = 'El sistema de autenticación estará disponible muy pronto.';
+        // 1) Intentar login de panel admin (admin_usuarios)
+        $stmtAdmin = $conn->prepare(
+            "SELECT u.id, u.email, u.password_hash, u.nombre, u.activo, r.slug AS rol_slug, r.nombre AS rol_nombre
+             FROM admin_usuarios u
+             INNER JOIN admin_roles r ON r.id = u.rol_id
+             WHERE u.email = ?
+             LIMIT 1"
+        );
+
+        $authenticated = false;
+
+        if ($stmtAdmin) {
+            $stmtAdmin->bind_param("s", $emailNorm);
+            $stmtAdmin->execute();
+            $adminUser = $stmtAdmin->get_result()->fetch_assoc();
+            $stmtAdmin->close();
+
+            if ($adminUser && (int) $adminUser['activo'] === 1 && password_verify($password, $adminUser['password_hash'])) {
+                session_regenerate_id(true);
+                $_SESSION['admin_user_id']   = (int) $adminUser['id'];
+                $_SESSION['admin_email']     = $adminUser['email'];
+                $_SESSION['admin_nombre']    = $adminUser['nombre'];
+                $_SESSION['admin_rol_slug']  = $adminUser['rol_slug'];
+                $_SESSION['admin_rol_nombre'] = $adminUser['rol_nombre'];
+                header('Location: admin/index.php');
+                exit;
+            }
+        }
+
+        // 2) Intentar login de usuario tienda (usuarios)
+        $stmtUser = $conn->prepare(
+            "SELECT u.id, u.email, u.contrasena_hash, r.nombre AS rol_nombre
+             FROM usuarios u
+             LEFT JOIN roles r ON r.id = u.rol_id
+             WHERE u.email = ?
+             LIMIT 1"
+        );
+
+        if ($stmtUser) {
+            $stmtUser->bind_param("s", $emailNorm);
+            $stmtUser->execute();
+            $user = $stmtUser->get_result()->fetch_assoc();
+            $stmtUser->close();
+
+            if ($user && password_verify($password, $user['contrasena_hash'])) {
+                session_regenerate_id(true);
+                $_SESSION['user_id']    = (int) $user['id'];
+                $_SESSION['user_email'] = $emailNorm;
+                $_SESSION['user_role']  = $user['rol_nombre'] ?? 'cliente';
+                $authenticated = true;
+            }
+        }
+
+        if ($authenticated) {
+            header('Location: index.php');
+            exit;
+        }
+
+        $error = 'Correo o contraseña incorrectos.';
     }
 }
 ?>
