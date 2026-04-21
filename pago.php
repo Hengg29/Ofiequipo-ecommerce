@@ -22,6 +22,19 @@ if (empty($cart)) { header('Location: carrito.php'); exit; }
 
 $paypalClientId = $_ENV['PAYPAL_CLIENT_ID'] ?? '';
 
+// Obtener precios de la BD para cada item del carrito
+$cartTotal = 0;
+foreach ($cart as &$item) {
+    $sp = $conn->prepare("SELECT precio FROM producto WHERE id = ? AND activo = 1");
+    $sp->bind_param('i', $item['id']);
+    $sp->execute();
+    $pr = $sp->get_result()->fetch_assoc();
+    $sp->close();
+    $item['precio'] = (float)($pr['precio'] ?? 0);
+    $cartTotal += $item['precio'] * (int)$item['cantidad'];
+}
+unset($item);
+
 // Header vars
 $search_query  = '';
 $categoria_id  = 0;
@@ -782,33 +795,34 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
                         <img class="order-item-img"
                              src="<?= htmlspecialchars($item['imagen']) ?>"
                              alt="<?= htmlspecialchars($item['nombre']) ?>">
-                        <span class="order-item-name"><?= htmlspecialchars($item['nombre']) ?></span>
-                        <span class="order-item-qty">×<?= (int)$item['cantidad'] ?></span>
+                        <div style="flex:1;min-width:0;">
+                            <span class="order-item-name"><?= htmlspecialchars($item['nombre']) ?></span>
+                            <?php if ($item['precio'] > 0): ?>
+                            <span style="display:block;font-size:11px;color:#64748b;margin-top:2px;">
+                                $<?= number_format($item['precio'], 2) ?> × <?= (int)$item['cantidad'] ?>
+                            </span>
+                            <?php endif; ?>
+                        </div>
+                        <span class="order-item-qty" style="font-weight:700;color:#0f172a;">
+                            <?= $item['precio'] > 0 ? '$' . number_format($item['precio'] * $item['cantidad'], 2) : '×' . (int)$item['cantidad'] ?>
+                        </span>
                     </div>
                     <?php endforeach; ?>
 
                     <hr class="order-divider">
 
                     <div class="order-row">
-                        <span>Productos</span>
-                        <strong><?= count($cart) ?></strong>
-                    </div>
-                    <div class="order-row">
-                        <span>Unidades</span>
-                        <strong><?= $cartCount ?></strong>
+                        <span>Subtotal</span>
+                        <strong><?= $cartTotal > 0 ? '$' . number_format($cartTotal, 2) : 'A cotizar' ?></strong>
                     </div>
                     <div class="order-row">
                         <span>Envío</span>
                         <strong style="color:#16a34a;">Gratis</strong>
                     </div>
-                    <div class="order-row">
-                        <span>Precio</span>
-                        <strong>A cotizar</strong>
-                    </div>
 
                     <div class="order-total">
                         <span>Total</span>
-                        <span>Por confirmar</span>
+                        <span><?= $cartTotal > 0 ? '$' . number_format($cartTotal, 2) . ' MXN' : 'Por confirmar' ?></span>
                     </div>
 
                     <div class="order-badge">
