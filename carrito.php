@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once __DIR__ . '/apis/db.php';
+require_once __DIR__ . '/includes/require_login.php';
 
 function getImageUrl($imagePath) {
     if (empty($imagePath)) return 'https://via.placeholder.com/800x600?text=Sin+imagen';
@@ -589,6 +590,7 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
                 <div class="header-actions">
                     <a href="tel:8331881814" class="btn btn-secondary btn-small">Llamar</a>
                     <a href="https://wa.me/528331881814" class="btn btn-secondary btn-small">WhatsApp</a>
+                    <?php require_once __DIR__ . '/includes/user_avatar.php'; ?>
                     <a href="carrito.php" class="btn btn-primary btn-small" style="display:inline-flex;align-items:center;gap:6px;">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M7 18c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm10 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zM5.82 5H21l-1.68 8.39c-.16.79-.84 1.36-1.64 1.36H8.08c-.8 0-1.49-.57-1.64-1.36L5 5H3V3H5.82z"/></svg>
                         Carrito

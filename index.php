@@ -822,6 +822,41 @@ if ($destCol) {
                 font-size: 11px;
             }
 
+            /* ── User avatar dropdown ── */
+            .user-avatar-wrap { position: relative; display: inline-block; }
+            .user-avatar {
+                width: 36px; height: 36px; border-radius: 50%;
+                background: linear-gradient(135deg, #1e3a8a, #2563eb);
+                color: white; font-size: 14px; font-weight: 700;
+                display: flex; align-items: center; justify-content: center;
+                cursor: pointer; border: 2px solid transparent;
+                transition: border-color 0.2s, box-shadow 0.2s;
+                user-select: none;
+            }
+            .user-avatar:hover { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.15); }
+            .user-dropdown {
+                position: absolute; top: calc(100% + 10px); right: 0;
+                background: white; border: 1px solid #e2e8f0;
+                border-radius: 14px; box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+                min-width: 210px; z-index: 2000; display: none;
+                animation: dropIn 0.18s ease;
+                overflow: hidden;
+            }
+            .user-dropdown.open { display: block; }
+            .user-dropdown-head { padding: 16px 18px 12px; border-bottom: 1px solid #f1f5f9; }
+            .user-dropdown-name { font-size: 14px; font-weight: 700; color: #0f172a; }
+            .user-dropdown-email { font-size: 12px; color: #64748b; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 174px; }
+            .user-dropdown-item {
+                display: flex; align-items: center; gap: 10px;
+                padding: 11px 18px; font-size: 14px; color: #374151;
+                text-decoration: none; transition: background 0.15s;
+                cursor: pointer; border: none; background: none; width: 100%; font-family: inherit; text-align: left;
+            }
+            .user-dropdown-item:hover { background: #f8fafc; color: #1e3a8a; }
+            .user-dropdown-item.danger { color: #ef4444; }
+            .user-dropdown-item.danger:hover { background: #fef2f2; color: #dc2626; }
+            .user-dropdown-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+
             .hero {
                 padding: 40px 0;
                 flex-direction: column;
@@ -2736,14 +2771,7 @@ if ($destCol) {
                 <div class="header-actions">
                     <a href="tel:8331881814" class="btn btn-secondary btn-small">Llamar</a>
                     <a href="https://wa.me/528331881814" class="btn btn-secondary btn-small">WhatsApp</a>
-                    <?php if (!empty($_SESSION['user_id'])): ?>
-                        <?php
-                        $hdrName = trim((string) ($_SESSION['user_nombre'] ?? ''));
-                        $hdrLabel = $hdrName !== '' ? $hdrName : (string) ($_SESSION['user_email'] ?? 'Cuenta');
-                        ?>
-                        <span class="btn btn-secondary btn-small" style="cursor:default;pointer-events:none;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="<?= htmlspecialchars((string) ($_SESSION['user_email'] ?? ''), ENT_QUOTES) ?>"><?= htmlspecialchars($hdrLabel, ENT_QUOTES) ?></span>
-                        <a href="logout.php" class="btn btn-secondary btn-small">Salir</a>
-                    <?php else: ?>
+                    <?php if (empty($_SESSION['user_id'])): ?>
                         <button type="button" class="btn btn-secondary btn-small" onclick="openAuthModal()">Iniciar Sesión</button>
                     <?php endif; ?>
                     <button class="btn btn-primary btn-small" onclick="openQuoteModal()">Cotizar</button>
@@ -2753,6 +2781,36 @@ if ($destCol) {
                         Carrito
                         <span class="cart-badge-count" style="<?= $cartCount > 0 ? '' : 'display:none;' ?>background:#ef4444;color:white;font-size:10px;font-weight:700;min-width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;padding:0 3px;"><?= $cartCount ?></span>
                     </button>
+                    <?php if (!empty($_SESSION['user_id'])): ?>
+                        <?php
+                        $hdrName  = trim((string)($_SESSION['user_nombre'] ?? ''));
+                        $hdrEmail = (string)($_SESSION['user_email'] ?? '');
+                        $initials = strtoupper(mb_substr($hdrName !== '' ? $hdrName : $hdrEmail, 0, 1));
+                        if (str_contains($hdrName, ' ')) {
+                            $parts = explode(' ', $hdrName);
+                            $initials = strtoupper(mb_substr($parts[0],0,1) . mb_substr($parts[1],0,1));
+                        }
+                        ?>
+                        <div class="user-avatar-wrap" id="userAvatarWrap">
+                            <div class="user-avatar" id="userAvatarBtn" onclick="toggleUserDropdown(event)" title="<?= htmlspecialchars($hdrName ?: $hdrEmail, ENT_QUOTES) ?>">
+                                <?= htmlspecialchars($initials) ?>
+                            </div>
+                            <div class="user-dropdown" id="userDropdown">
+                                <div class="user-dropdown-head">
+                                    <div class="user-dropdown-name"><?= htmlspecialchars($hdrName ?: 'Mi cuenta', ENT_QUOTES) ?></div>
+                                    <div class="user-dropdown-email"><?= htmlspecialchars($hdrEmail, ENT_QUOTES) ?></div>
+                                </div>
+                                <a href="mis_pedidos.php" class="user-dropdown-item">
+                                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z"/></svg>
+                                    Mis Pedidos
+                                </a>
+                                <a href="logout.php" class="user-dropdown-item danger">
+                                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+                                    Cerrar sesión
+                                </a>
+                            </div>
+                        </div>
+                    <?php endif; ?>
                 </div>
                 <button class="menu-toggle" aria-label="Toggle menu">
                     <span></span>
@@ -5049,6 +5107,18 @@ if ($destCol) {
                 }, 9000);
             }, duration);
         });
+    </script>
+    <script>
+    function toggleUserDropdown(e) {
+        e.stopPropagation();
+        document.getElementById('userDropdown').classList.toggle('open');
+    }
+    document.addEventListener('click', function(e) {
+        const wrap = document.getElementById('userAvatarWrap');
+        if (wrap && !wrap.contains(e.target)) {
+            document.getElementById('userDropdown').classList.remove('open');
+        }
+    });
     </script>
     <!-- FIN ANIMACION FLORES AMARILLAS -->
 

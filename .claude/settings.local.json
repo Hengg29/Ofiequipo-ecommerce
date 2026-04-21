@@ -18,7 +18,8 @@
       "Bash(ls -la /Users/hengg/Documents/OfieEquipoV2/*.json)",
       "Bash(grep -E \"\\\\.\\(php|js|css\\)$\")",
       "Bash(file /Users/hengg/Documents/OfieEquipoV2/*.jpeg /Users/hengg/Documents/OfieEquipoV2/*.pdf)",
-      "Bash(git -C /Users/hengg/Documents/OfieEquipoV2 log --oneline)"
+      "Bash(git -C /Users/hengg/Documents/OfieEquipoV2 log --oneline)",
+      "Bash(php -r ' *)"
     ]
   }
 }

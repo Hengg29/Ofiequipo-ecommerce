@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once __DIR__ . '/apis/db.php';
+require_once __DIR__ . '/includes/require_login.php';
 
 function getImageUrl($imagePath) {
     if (empty($imagePath)) return 'https://via.placeholder.com/800x600?text=Sin+imagen';
@@ -18,6 +19,8 @@ function getImageUrl($imagePath) {
 $cart      = $_SESSION['cart'] ?? [];
 $cartCount = array_sum(array_column($cart, 'cantidad'));
 if (empty($cart)) { header('Location: carrito.php'); exit; }
+
+$paypalClientId = $_ENV['PAYPAL_CLIENT_ID'] ?? '';
 
 // Header vars
 $search_query  = '';
@@ -497,6 +500,7 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
                 <div class="header-actions">
                     <a href="tel:8331881814" class="btn btn-secondary btn-small">Llamar</a>
                     <a href="https://wa.me/528331881814" class="btn btn-secondary btn-small">WhatsApp</a>
+                    <?php require_once __DIR__ . '/includes/user_avatar.php'; ?>
                     <a href="carrito.php" class="btn btn-secondary btn-small" style="display:inline-flex;align-items:center;gap:6px;">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M7 18c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm10 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zM5.82 5H21l-1.68 8.39c-.16.79-.84 1.36-1.64 1.36H8.08c-.8 0-1.49-.57-1.64-1.36L5 5H3V3H5.82z"/></svg>
                         Carrito
@@ -616,15 +620,15 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
                             Serás redirigido a PayPal para completar el pago.
                         </p>
 
-                        <button class="btn-paypal">
-                            <svg viewBox="0 0 24 24" fill="#003087" width="20" height="20"><path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.291-.077.444-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.1zm14.146-14.42a3.35 3.35 0 0 0-.607-.541c-.013.076-.026.175-.041.254-.93 4.778-4.005 7.201-9.138 7.201h-2.19a.563.563 0 0 0-.556.479l-1.187 7.527h-.506l-.24 1.516a.56.56 0 0 0 .554.647h3.882c.46 0 .85-.334.922-.788l.038-.196.731-4.628.047-.256a.932.932 0 0 1 .92-.788h.58c3.76 0 6.705-1.528 7.565-5.946.36-1.847.174-3.388-.77-4.48z"/></svg>
-                            Pagar con PayPal
-                        </button>
+                        <!-- Botón real del SDK de PayPal -->
+                        <div id="paypal-button-container"></div>
 
-                        <div class="paypal-divider">o paga con tarjeta a través de PayPal</div>
+                        <div id="paypal-error" style="display:none;margin-top:14px;padding:12px 16px;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;font-size:13px;color:#b91c1c;"></div>
+
+                        <div class="paypal-divider" style="margin-top:20px;">¿Sin cuenta PayPal?</div>
 
                         <div class="paypal-note">
-                            <strong>¿Sin cuenta PayPal?</strong> No te preocupes — puedes pagar con tarjeta de crédito o débito directamente desde PayPal sin necesidad de registrarte. Selecciona "Tarjeta de crédito o débito" en la ventana de PayPal.
+                            Puedes pagar con tarjeta de crédito o débito directamente desde PayPal sin necesidad de registrarte. Selecciona <strong>"Tarjeta de crédito o débito"</strong> en la ventana de PayPal.
                         </div>
                     </div>
 
@@ -909,9 +913,67 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
         if (mt && nv) mt.addEventListener('click', () => { mt.classList.toggle('active'); nv.classList.toggle('active'); });
     });
 
-    // ── Pay button placeholder ─────────────────────────────────
-    function handlePay() {
-        alert('El sistema de pago se conectará próximamente. ¡Gracias por tu interés!');
+    </script>
+
+    <!-- SDK de PayPal -->
+    <script src="https://www.paypal.com/sdk/js?client-id=<?= htmlspecialchars($paypalClientId) ?>&currency=MXN&intent=capture" data-sdk-integration-source="button-factory"></script>
+    <script>
+    if (typeof paypal !== 'undefined') {
+        paypal.Buttons({
+            style: {
+                layout: 'vertical',
+                color:  'gold',
+                shape:  'rect',
+                label:  'paypal',
+            },
+
+            createOrder: function() {
+                return fetch('apis/paypal_create.php', { method: 'POST' })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.error) {
+                            const errEl = document.getElementById('paypal-error');
+                            errEl.textContent = data.error;
+                            errEl.style.display = 'block';
+                            throw new Error(data.error);
+                        }
+                        document.getElementById('paypal-error').style.display = 'none';
+                        return data.id;
+                    });
+            },
+
+            onApprove: function(data) {
+                return fetch('apis/paypal_capture.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: 'orderID=' + encodeURIComponent(data.orderID),
+                })
+                .then(r => r.json())
+                .then(result => {
+                    if (result.success) {
+                        window.location.href = result.redirect;
+                    } else {
+                        const errEl = document.getElementById('paypal-error');
+                        errEl.textContent = result.error || 'El pago no fue procesado. Intenta de nuevo.';
+                        errEl.style.display = 'block';
+                    }
+                });
+            },
+
+            onError: function(err) {
+                const errEl = document.getElementById('paypal-error');
+                errEl.textContent = 'Ocurrió un error con PayPal. Por favor intenta de nuevo o elige otro método de pago.';
+                errEl.style.display = 'block';
+                console.error('PayPal error:', err);
+            },
+
+            onCancel: function() {
+                const errEl = document.getElementById('paypal-error');
+                errEl.textContent = 'Cancelaste el pago. Puedes intentarlo de nuevo cuando quieras.';
+                errEl.style.display = 'block';
+            }
+
+        }).render('#paypal-button-container');
     }
     </script>
 </body>

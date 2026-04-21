@@ -2,8 +2,9 @@
 session_start();
 require_once __DIR__ . '/apis/db.php';
 
+$redirectAfterLogin = trim($_GET['redirect'] ?? '');
 if (!empty($_SESSION['user_id'])) {
-    header('Location: index.php');
+    header('Location: ' . ($redirectAfterLogin ?: 'index.php'));
     exit;
 }
 
@@ -78,7 +79,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['user_role']   = 'cliente';
                     $_SESSION['user_nombre'] = $nombre;
 
-                    header('Location: index.php');
+                    $dest = trim($_POST['redirect'] ?? $_GET['redirect'] ?? '');
+                    header('Location: ' . ($dest ?: 'index.php'));
                     exit;
                 } catch (Throwable $e) {
                     $conn->rollback();
@@ -532,11 +534,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <p>Completa el formulario para comenzar.</p>
             </div>
 
-            <?php if ($error): ?>
+            <?php if (!empty($_GET['msg']) && $_GET['msg'] === 'login_required'): ?>
+                <div class="alert alert-error" style="display:flex;align-items:center;gap:8px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 4a3 3 0 1 1 0 6 3 3 0 0 1 0-6zm0 13c-2.5 0-4.71-1.28-6-3.22C6.03 13.36 9.13 12 12 12s5.97 1.36 6 2.78C16.71 16.72 14.5 18 12 18z"/></svg>
+                    Regístrate para continuar con tu compra.
+                </div>
+            <?php elseif ($error): ?>
                 <div class="alert alert-error"><?= htmlspecialchars($error) ?></div>
             <?php endif; ?>
 
-            <form method="POST" action="">
+            <form method="POST" action="?redirect=<?= htmlspecialchars($redirectAfterLogin) ?>">
                 <div class="form-group">
                     <label for="nombre">Nombre Completo</label>
                     <input type="text" id="nombre" name="nombre"
