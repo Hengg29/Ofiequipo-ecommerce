@@ -2189,7 +2189,7 @@ function pageUrl($p)
                                         Cotizar
                                     </button>
                                     <a class="btn btn-secondary"
-                                        href="producto.php?id=<?= (int)$producto['id'] ?>">Ver detalles</a>
+                                        href="producto.php?id=<?= (int)$producto['id'] ?>">Comprar</a>
                                 </div>
                             </div>
                         </div>
