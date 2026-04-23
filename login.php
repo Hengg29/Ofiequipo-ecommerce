@@ -49,7 +49,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['admin_nombre']    = $adminUser['nombre'];
                 $_SESSION['admin_rol_slug']  = $adminUser['rol_slug'];
                 $_SESSION['admin_rol_nombre'] = $adminUser['rol_nombre'];
-                header('Location: admin/index.php');
+                $dest = $adminUser['rol_slug'] === 'repartidor'
+                    ? 'admin/repartidor.php'
+                    : 'admin/index.php';
+                header('Location: ' . $dest);
                 exit;
             }
         }
@@ -518,7 +521,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                            required autocomplete="current-password">
                 </div>
                 <div class="form-forgot">
-                    <a href="#">¿Olvidaste tu contraseña?</a>
+                    <a href="olvide_contrasena.php">¿Olvidaste tu contraseña?</a>
                 </div>
                 <button type="submit" class="btn-submit">Iniciar Sesión</button>
             </form>

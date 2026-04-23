@@ -37,6 +37,9 @@ function admin_role_modules(): array
         'almacen' => [
             'dashboard', 'envios', 'inventario', 'productos', 'reportes',
         ],
+        'repartidor' => [
+            'repartidor',
+        ],
     ];
 }
 

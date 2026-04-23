@@ -161,7 +161,8 @@ CREATE TABLE IF NOT EXISTS admin_roles (
 INSERT IGNORE INTO admin_roles (id, slug, nombre) VALUES
   (1, 'administrador', 'Administrador'),
   (2, 'vendedor',      'Vendedor'),
-  (3, 'almacen',       'Almacén');
+  (3, 'almacen',       'Almacén'),
+  (4, 'repartidor',    'Repartidor');
 
 CREATE TABLE IF NOT EXISTS admin_usuarios (
   id            INT AUTO_INCREMENT PRIMARY KEY,

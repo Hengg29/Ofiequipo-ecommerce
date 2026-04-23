@@ -103,6 +103,59 @@ if (($capture['status'] ?? '') === 'COMPLETED') {
     $ipg = $conn->prepare("INSERT INTO pagos (pedido_id, monto, metodo_pago) VALUES (?, ?, 'paypal')");
     $ipg->bind_param('id', $pedidoId, $monto); $ipg->execute(); $ipg->close();
 
+    // Sincronizar con tablas del panel admin
+    $payerName  = trim(($capture['payer']['name']['given_name'] ?? '') . ' ' . ($capture['payer']['name']['surname'] ?? ''));
+    $payerEmail = $capture['payer']['email_address'] ?? '';
+    $numeroPedido = 'PP-' . $pedidoId . '-' . date('Ymd');
+
+    // Buscar o crear admin_cliente por email
+    $adminClienteId = null;
+    if ($payerEmail) {
+        $sac = $conn->prepare("SELECT id FROM admin_clientes WHERE email = ? LIMIT 1");
+        $sac->bind_param('s', $payerEmail); $sac->execute();
+        $acRow = $sac->get_result()->fetch_assoc(); $sac->close();
+        if ($acRow) {
+            $adminClienteId = (int)$acRow['id'];
+        } else {
+            $nameParts = explode(' ', $payerName, 2);
+            $firstName = $nameParts[0] ?? '';
+            $lastName  = $nameParts[1] ?? '';
+            $iac = $conn->prepare("INSERT INTO admin_clientes (nombre, apellido, email) VALUES (?, ?, ?)");
+            $iac->bind_param('sss', $firstName, $lastName, $payerEmail); $iac->execute();
+            $adminClienteId = (int)$conn->insert_id; $iac->close();
+        }
+    }
+
+    // Insertar en admin_pedidos
+    $iap = $conn->prepare(
+        "INSERT INTO admin_pedidos (numero_pedido, cliente_id, nombre_contacto, email_contacto, estado, subtotal, total, metodo_pago)
+         VALUES (?, ?, ?, ?, 'pendiente', ?, ?, 'paypal')"
+    );
+    $iap->bind_param('sissdd', $numeroPedido, $adminClienteId, $payerName, $payerEmail, $monto, $monto);
+    $iap->execute();
+    $adminPedidoId = (int)$conn->insert_id; $iap->close();
+
+    // Crear registro de envío pendiente
+    $iae = $conn->prepare("INSERT INTO admin_envios (pedido_id, estado) VALUES (?, 'pendiente')");
+    $iae->bind_param('i', $adminPedidoId); $iae->execute(); $iae->close();
+
+    // Insertar detalle en admin_detalle_pedido
+    foreach ($cart as $item) {
+        $stmtNom = $conn->prepare("SELECT nombre, precio FROM producto WHERE id = ?");
+        $stmtNom->bind_param('i', $item['id']); $stmtNom->execute();
+        $prodRow = $stmtNom->get_result()->fetch_assoc(); $stmtNom->close();
+        $nombreProd = $prodRow['nombre'] ?? ('Producto #' . $item['id']);
+        $precioProd = (float)($prodRow['precio'] ?? 0);
+        $cantProd   = (int)$item['cantidad'];
+        $subtotalLinea = $precioProd * $cantProd;
+        $iad = $conn->prepare(
+            "INSERT INTO admin_detalle_pedido (pedido_id, producto_id, nombre_producto, cantidad, precio_unitario, subtotal_linea)
+             VALUES (?, ?, ?, ?, ?, ?)"
+        );
+        $iad->bind_param('iisidd', $adminPedidoId, $item['id'], $nombreProd, $cantProd, $precioProd, $subtotalLinea);
+        $iad->execute(); $iad->close();
+    }
+
     // Guardar en sesión para confirmación
     $_SESSION['paypal_confirmacion'] = [
         'pedido_id'   => $pedidoId,
