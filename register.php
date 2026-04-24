@@ -81,13 +81,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $uv->bind_param('ssi', $vToken, $vExpira, $newId);
                     $uv->execute();
                     $uv->close();
+                    // Redirigir al usuario primero, luego enviar el correo
+                    header('Location: login.php?msg=verificar_correo&email=' . urlencode($emailNorm));
+                    if (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
+
                     $mailResult = sendVerificacionEmail($emailNorm, $nombre, $vToken);
                     file_put_contents(__DIR__ . '/mail_debug.log',
                         date('Y-m-d H:i:s') . ' [register] to=' . $emailNorm . ' result=' . ($mailResult ? 'OK' : 'FALLO') . "\n",
                         FILE_APPEND);
-
-                    // No iniciar sesión hasta verificar correo
-                    header('Location: login.php?msg=verificar_correo&email=' . urlencode($emailNorm));
                     exit;
                 } catch (Throwable $e) {
                     $conn->rollback();

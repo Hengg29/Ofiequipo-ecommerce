@@ -19,6 +19,8 @@ $st->execute();
 $user = $st->get_result()->fetch_assoc();
 $st->close();
 
+$nombre = '';
+$token  = '';
 if ($user) {
     $token  = bin2hex(random_bytes(32));
     $expira = date('Y-m-d H:i:s', strtotime('+24 hours'));
@@ -27,11 +29,16 @@ if ($user) {
     $up->execute();
     $up->close();
     $nombre = $user['nombre'] ?: explode('@', $user['email'])[0];
+}
+
+// Redirigir primero, enviar correo después
+header('Location: ' . $base . '/login.php?msg=reenvio_ok&email=' . urlencode($email));
+if (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
+
+if ($user) {
     $result = sendVerificacionEmail($user['email'], $nombre, $token);
     file_put_contents(__DIR__ . '/../mail_debug.log',
         date('Y-m-d H:i:s') . ' [reenviar] to=' . $email . ' result=' . ($result ? 'OK' : 'FALLO') . "\n",
         FILE_APPEND);
 }
-
-header('Location: ' . $base . '/login.php?msg=reenvio_ok&email=' . urlencode($email));
 exit;

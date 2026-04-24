@@ -168,17 +168,6 @@ if (($capture['status'] ?? '') === 'COMPLETED') {
             'precio'   => $item['precio'] ?? 0,
         ];
     }
-    $mailOk = sendConfirmacionPedido($userEmail, $userNombre, [
-        'pedido_id' => $pedidoId,
-        'monto'     => number_format($monto, 2),
-        'moneda'    => $pmt['amount']['currency_code'] ?? 'MXN',
-        'metodo'    => 'PayPal',
-        'items'     => $itemsEmail,
-    ]);
-    file_put_contents(__DIR__ . '/../mail_debug.log',
-        date('Y-m-d H:i:s') . ' [pedido #' . $pedidoId . '] to=' . $userEmail . ' result=' . ($mailOk ? 'OK' : 'FALLO') . "\n",
-        FILE_APPEND);
-
     // Guardar en sesión para confirmación
     $_SESSION['paypal_confirmacion'] = [
         'pedido_id'   => $pedidoId,
@@ -191,6 +180,19 @@ if (($capture['status'] ?? '') === 'COMPLETED') {
     ];
     $_SESSION['cart'] = [];
     echo json_encode(['success' => true, 'redirect' => 'confirmacion.php']);
+    if (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
+
+    // Enviar correo después de responder al navegador
+    $mailOk = sendConfirmacionPedido($userEmail, $userNombre, [
+        'pedido_id' => $pedidoId,
+        'monto'     => number_format($monto, 2),
+        'moneda'    => $pmt['amount']['currency_code'] ?? 'MXN',
+        'metodo'    => 'PayPal',
+        'items'     => $itemsEmail,
+    ]);
+    file_put_contents(__DIR__ . '/../mail_debug.log',
+        date('Y-m-d H:i:s') . ' [pedido #' . $pedidoId . '] to=' . $userEmail . ' result=' . ($mailOk ? 'OK' : 'FALLO') . "\n",
+        FILE_APPEND);
 } else {
     echo json_encode(['error' => 'El pago no fue completado.', 'status' => $capture['status'] ?? 'UNKNOWN']);
 }
