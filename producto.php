@@ -903,8 +903,8 @@ $cartCount = array_sum(array_column($_SESSION['cart'] ?? [], 'cantidad'));
         toast.classList.add('show');
         setTimeout(() => toast.classList.remove('show'), 2800);
 
-        // Open drawer after brief delay
-        setTimeout(() => openCartDrawer(), 350);
+        // Open drawer after brief delay, passing data to avoid a second request
+        setTimeout(() => openCartDrawer(data), 350);
 
         // Reset button after drawer is open
         setTimeout(() => {

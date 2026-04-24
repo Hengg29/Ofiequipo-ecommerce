@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once __DIR__ . '/apis/db.php';
+require_once __DIR__ . '/includes/mailer.php';
 
 $redirectAfterLogin = trim($_GET['redirect'] ?? '');
 if (!empty($_SESSION['user_id'])) {
@@ -46,12 +47,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $conn->begin_transaction();
                 try {
                     $ins = $conn->prepare(
-                        'INSERT INTO usuarios (email, contrasena_hash, rol_id) VALUES (?,?,?)'
+                        'INSERT INTO usuarios (email, nombre, contrasena_hash, rol_id) VALUES (?,?,?,?)'
                     );
                     if (!$ins) {
                         throw new RuntimeException($conn->error);
                     }
-                    $ins->bind_param('ssi', $emailNorm, $hash, $rol);
+                    $ins->bind_param('sssi', $emailNorm, $nombre, $hash, $rol);
                     if (!$ins->execute()) {
                         throw new RuntimeException($ins->error);
                     }
@@ -73,14 +74,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     $conn->commit();
 
-                    session_regenerate_id(true);
-                    $_SESSION['user_id']     = $newId;
-                    $_SESSION['user_email']  = $emailNorm;
-                    $_SESSION['user_role']   = 'cliente';
-                    $_SESSION['user_nombre'] = $nombre;
+                    // Enviar email de verificación
+                    $vToken  = bin2hex(random_bytes(32));
+                    $vExpira = date('Y-m-d H:i:s', strtotime('+24 hours'));
+                    $uv = $conn->prepare("UPDATE usuarios SET verificacion_token = ?, token_expira = ? WHERE id = ?");
+                    $uv->bind_param('ssi', $vToken, $vExpira, $newId);
+                    $uv->execute();
+                    $uv->close();
+                    $mailResult = sendVerificacionEmail($emailNorm, $nombre, $vToken);
+                    file_put_contents(__DIR__ . '/mail_debug.log',
+                        date('Y-m-d H:i:s') . ' [register] to=' . $emailNorm . ' result=' . ($mailResult ? 'OK' : 'FALLO') . "\n",
+                        FILE_APPEND);
 
-                    $dest = trim($_POST['redirect'] ?? $_GET['redirect'] ?? '');
-                    header('Location: ' . ($dest ?: 'index.php'));
+                    // No iniciar sesión hasta verificar correo
+                    header('Location: login.php?msg=verificar_correo&email=' . urlencode($emailNorm));
                     exit;
                 } catch (Throwable $e) {
                     $conn->rollback();

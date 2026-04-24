@@ -1,42 +1,57 @@
 <?php
 session_start();
 require_once __DIR__ . '/apis/db.php';
-require_once __DIR__ . '/includes/mailer.php';
 
 if (!empty($_SESSION['user_id'])) {
     header('Location: index.php');
     exit;
 }
 
-$msg   = '';
-$type  = '';
+$token = trim($_GET['token'] ?? '');
+$error = '';
+$done  = false;
+
+// Validate token
+$user = null;
+if ($token !== '') {
+    $st = $conn->prepare(
+        "SELECT id, nombre, email FROM usuarios WHERE reset_token = ? AND reset_expira > NOW() LIMIT 1"
+    );
+    $st->bind_param('s', $token);
+    $st->execute();
+    $user = $st->get_result()->fetch_assoc();
+    $st->close();
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = strtolower(trim($_POST['email'] ?? ''));
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $msg  = 'Ingresa un correo electrónico válido.';
-        $type = 'error';
+    $postToken = trim($_POST['token'] ?? '');
+    $pass      = $_POST['password']  ?? '';
+    $confirm   = $_POST['confirm']   ?? '';
+
+    // Re-validate token from POST
+    $st2 = $conn->prepare(
+        "SELECT id, nombre, email FROM usuarios WHERE reset_token = ? AND reset_expira > NOW() LIMIT 1"
+    );
+    $st2->bind_param('s', $postToken);
+    $st2->execute();
+    $user = $st2->get_result()->fetch_assoc();
+    $st2->close();
+
+    if (!$user) {
+        $error = 'El enlace expiró o ya fue utilizado. Solicita uno nuevo.';
+    } elseif (strlen($pass) < 6) {
+        $error = 'La contraseña debe tener al menos 6 caracteres.';
+    } elseif ($pass !== $confirm) {
+        $error = 'Las contraseñas no coinciden.';
     } else {
-        $st = $conn->prepare("SELECT id, nombre, email FROM usuarios WHERE email = ? LIMIT 1");
-        $st->bind_param('s', $email);
-        $st->execute();
-        $user = $st->get_result()->fetch_assoc();
-        $st->close();
-
-        // Always show success to avoid email enumeration
-        $msg  = 'Si ese correo existe en nuestra base de datos, recibirás un enlace para restablecer tu contraseña en breve.';
-        $type = 'success';
-
-        if ($user) {
-            $token  = bin2hex(random_bytes(32));
-            $expira = date('Y-m-d H:i:s', strtotime('+1 hour'));
-            $up = $conn->prepare("UPDATE usuarios SET reset_token = ?, reset_expira = ? WHERE id = ?");
-            $up->bind_param('ssi', $token, $expira, $user['id']);
-            $up->execute();
-            $up->close();
-            $nombre = $user['nombre'] ?: explode('@', $user['email'])[0];
-            sendResetPassword($user['email'], $nombre, $token);
-        }
+        $hash = password_hash($pass, PASSWORD_DEFAULT);
+        $up   = $conn->prepare(
+            "UPDATE usuarios SET contrasena_hash = ?, reset_token = NULL, reset_expira = NULL WHERE id = ?"
+        );
+        $up->bind_param('si', $hash, $user['id']);
+        $up->execute();
+        $up->close();
+        $done = true;
     }
 }
 ?>
@@ -45,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Olvidé mi contraseña — OfiEquipo</title>
+<title>Nueva contraseña — OfiEquipo</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -71,11 +86,12 @@ body{display:flex;}
 .form-head{margin-bottom:28px;}
 .form-head h2{font-size:22px;font-weight:700;color:#0f172a;letter-spacing:-.4px;}
 .form-head p{margin-top:6px;font-size:14px;color:#475569;line-height:1.5;}
-.form-group{margin-bottom:18px;}
+.form-group{margin-bottom:16px;}
 .form-group label{display:block;font-size:13px;font-weight:600;color:#0f172a;margin-bottom:6px;}
-.form-group input{width:100%;padding:11px 13px;border:1.5px solid #2563eb;border-radius:9px;font-size:14px;font-family:inherit;color:#0f172a;background:#f8fafc;outline:none;transition:border-color .2s,box-shadow .2s,background .2s;}
+.form-group input{width:100%;padding:11px 13px;border:1.5px solid #2563eb;border-radius:9px;font-size:14px;font-family:inherit;color:#0f172a;background:#f8fafc;outline:none;transition:border-color .2s,box-shadow .2s;}
 .form-group input:focus{border-color:#2563eb;background:white;box-shadow:0 0 0 3px rgba(37,99,235,0.1);}
 .form-group input::placeholder{color:#94a3b8;}
+.pass-hint{font-size:12px;color:#94a3b8;margin-top:-8px;margin-bottom:16px;}
 .btn-submit{width:100%;padding:12px;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:white;border:none;border-radius:10px;font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;box-shadow:0 4px 14px rgba(37,99,235,0.3);transition:transform .15s,box-shadow .15s;margin-top:6px;}
 .btn-submit:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(37,99,235,0.42);}
 .alert{padding:11px 14px;border-radius:9px;font-size:13.5px;font-weight:500;margin-bottom:18px;}
@@ -83,7 +99,6 @@ body{display:flex;}
 .alert-success{background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;}
 .form-switch{text-align:center;font-size:14px;color:#475569;margin-top:20px;}
 .form-switch a{color:#2563eb;font-weight:600;text-decoration:none;}
-.form-switch a:hover{text-decoration:underline;}
 @media(max-width:800px){body{flex-direction:column;height:auto;}.panel-brand{width:100%;min-height:auto;}.brand-back{top:20px;left:20px;}.brand-content{flex-direction:row;align-items:center;padding:56px 20px 20px;gap:14px;}.brand-tagline,.brand-divider{display:none;}.brand-icon{width:42px;height:42px;border-radius:11px;margin-bottom:0;}.brand-name{font-size:18px;}.panel-form{min-height:auto;padding:32px 24px 48px;}}
 </style>
 </head>
@@ -100,29 +115,44 @@ body{display:flex;}
         </div>
         <h2 class="brand-name">OFIEQUIPO<span>DE TAMPICO</span></h2>
         <div class="brand-divider"></div>
-        <p class="brand-tagline">Restablece el acceso a tu cuenta de forma segura.</p>
+        <p class="brand-tagline">Crea una nueva contraseña segura para tu cuenta.</p>
     </div>
 </aside>
 <main class="panel-form">
     <div class="form-card">
-        <div class="form-head">
-            <h2>¿Olvidaste tu contraseña?</h2>
-            <p>Ingresa tu correo y te enviaremos un enlace para crear una nueva contraseña.</p>
-        </div>
-        <?php if ($msg): ?>
-            <div class="alert alert-<?= $type ?>"><?= htmlspecialchars($msg) ?></div>
-        <?php endif; ?>
-        <?php if ($type !== 'success'): ?>
-        <form method="POST">
-            <div class="form-group">
-                <label for="email">Correo Electrónico</label>
-                <input type="email" id="email" name="email"
-                       placeholder="tucorreo@ejemplo.com"
-                       value="<?= htmlspecialchars($_POST['email'] ?? '') ?>"
-                       required autocomplete="email">
+        <?php if ($done): ?>
+            <div class="form-head">
+                <h2>¡Contraseña actualizada!</h2>
+                <p>Tu contraseña fue cambiada exitosamente. Ya puedes iniciar sesión.</p>
             </div>
-            <button type="submit" class="btn-submit">Enviar enlace</button>
-        </form>
+            <a href="login.php" style="display:block;text-align:center;padding:12px;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:white;text-decoration:none;border-radius:10px;font-size:15px;font-weight:600;">Iniciar sesión</a>
+        <?php elseif (!$user && !$_POST): ?>
+            <div class="form-head">
+                <h2>Enlace inválido</h2>
+                <p>Este enlace expiró o ya fue utilizado. Solicita uno nuevo.</p>
+            </div>
+            <a href="olvide_contrasena.php" style="display:block;text-align:center;padding:12px;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:white;text-decoration:none;border-radius:10px;font-size:15px;font-weight:600;">Solicitar nuevo enlace</a>
+        <?php else: ?>
+            <div class="form-head">
+                <h2>Nueva contraseña</h2>
+                <p>Elige una contraseña segura de al menos 6 caracteres.</p>
+            </div>
+            <?php if ($error): ?>
+                <div class="alert alert-error"><?= htmlspecialchars($error) ?></div>
+            <?php endif; ?>
+            <form method="POST">
+                <input type="hidden" name="token" value="<?= htmlspecialchars($token) ?>">
+                <div class="form-group">
+                    <label for="password">Nueva contraseña</label>
+                    <input type="password" id="password" name="password" placeholder="Mínimo 6 caracteres" minlength="6" required autocomplete="new-password">
+                </div>
+                <div class="form-group">
+                    <label for="confirm">Confirmar contraseña</label>
+                    <input type="password" id="confirm" name="confirm" placeholder="Repite la contraseña" required autocomplete="new-password">
+                </div>
+                <p class="pass-hint">Mínimo 6 caracteres.</p>
+                <button type="submit" class="btn-submit">Guardar nueva contraseña</button>
+            </form>
         <?php endif; ?>
         <p class="form-switch"><a href="login.php">Volver al inicio de sesión</a></p>
     </div>

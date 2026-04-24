@@ -179,13 +179,13 @@ body.cart-drawer-open .whatsapp-fab {
 // ── Cart drawer state ──────────────────────────────────────
 let cartDrawerOpen = false;
 
-function openCartDrawer() {
+function openCartDrawer(data) {
     cartDrawerOpen = true;
     document.getElementById('cartOverlay').style.display = 'block';
     document.getElementById('cartDrawer').style.transform = 'translateX(0)';
     document.body.style.overflow = 'hidden';
     document.body.classList.add('cart-drawer-open');
-    loadCartDrawer();
+    if (data) renderCartDrawer(data); else loadCartDrawer();
 }
 
 function closeCartDrawer() {

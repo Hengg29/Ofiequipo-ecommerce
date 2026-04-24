@@ -60,9 +60,11 @@ switch ($action) {
 }
 
 $count = array_sum(array_column($_SESSION['cart'], 'cantidad'));
+$cart  = $_SESSION['cart'];
+session_write_close(); // liberar lock de sesión inmediatamente
 
 echo json_encode([
     'success' => true,
-    'cart'    => $_SESSION['cart'],
+    'cart'    => $cart,
     'count'   => $count,
 ]);

@@ -5,6 +5,7 @@ ini_set('display_errors', 0);
 session_start();
 header('Content-Type: application/json');
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/../includes/mailer.php';
 ob_clean();
 
 $clientId = $_ENV['PAYPAL_CLIENT_ID'] ?? '';
@@ -155,6 +156,28 @@ if (($capture['status'] ?? '') === 'COMPLETED') {
         $iad->bind_param('iisidd', $adminPedidoId, $item['id'], $nombreProd, $cantProd, $precioProd, $subtotalLinea);
         $iad->execute(); $iad->close();
     }
+
+    // Enviar email de confirmación al usuario registrado (no al email de PayPal sandbox)
+    $userEmail  = $_SESSION['user_email'] ?? $payerEmail;
+    $userNombre = $_SESSION['user_nombre'] ?? $payerName;
+    $itemsEmail = [];
+    foreach ($cart as $item) {
+        $itemsEmail[] = [
+            'nombre'   => $item['nombre'] ?? ('Producto #' . $item['id']),
+            'cantidad' => $item['cantidad'] ?? 1,
+            'precio'   => $item['precio'] ?? 0,
+        ];
+    }
+    $mailOk = sendConfirmacionPedido($userEmail, $userNombre, [
+        'pedido_id' => $pedidoId,
+        'monto'     => number_format($monto, 2),
+        'moneda'    => $pmt['amount']['currency_code'] ?? 'MXN',
+        'metodo'    => 'PayPal',
+        'items'     => $itemsEmail,
+    ]);
+    file_put_contents(__DIR__ . '/../mail_debug.log',
+        date('Y-m-d H:i:s') . ' [pedido #' . $pedidoId . '] to=' . $userEmail . ' result=' . ($mailOk ? 'OK' : 'FALLO') . "\n",
+        FILE_APPEND);
 
     // Guardar en sesión para confirmación
     $_SESSION['paypal_confirmacion'] = [

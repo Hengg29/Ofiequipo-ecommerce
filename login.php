@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // 2) Intentar login de usuario tienda (usuarios)
         $stmtUser = $conn->prepare(
-            "SELECT u.id, u.email, u.contrasena_hash, r.nombre AS rol_nombre
+            "SELECT u.id, u.email, u.nombre, u.contrasena_hash, u.email_verificado, r.nombre AS rol_nombre
              FROM usuarios u
              LEFT JOIN roles r ON r.id = u.rol_id
              WHERE u.email = ?
@@ -72,12 +72,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $user = $stmtUser->get_result()->fetch_assoc();
             $stmtUser->close();
 
-            if ($user && password_verify($password, $user['contrasena_hash'])) {
-                session_regenerate_id(true);
-                $_SESSION['user_id']    = (int) $user['id'];
-                $_SESSION['user_email'] = $emailNorm;
-                $_SESSION['user_role']  = $user['rol_nombre'] ?? 'cliente';
-                $authenticated = true;
+            if ($user) {
+                if (!(int)$user['email_verificado']) {
+                    $error = '__no_verificado__:' . $emailNorm;
+                } elseif (password_verify($password, $user['contrasena_hash'])) {
+                    session_regenerate_id(true);
+                    $_SESSION['user_id']     = (int) $user['id'];
+                    $_SESSION['user_email']  = $emailNorm;
+                    $_SESSION['user_role']   = $user['rol_nombre'] ?? 'cliente';
+                    $_SESSION['user_nombre'] = $user['nombre'] ?: explode('@', $emailNorm)[0];
+                    $authenticated = true;
+                }
             }
         }
 
@@ -87,7 +92,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
-        $error = 'Correo o contraseña incorrectos.';
+        if (!$error) {
+            $error = 'Correo o contraseña incorrectos.';
+        }
     }
 }
 ?>
@@ -494,10 +501,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <p>Ingresa tus datos para acceder a tu cuenta.</p>
             </div>
 
-            <?php if (!empty($_GET['msg']) && $_GET['msg'] === 'login_required'): ?>
+            <?php
+            $getMsg      = $_GET['msg'] ?? '';
+            $getEmail    = htmlspecialchars($_GET['email'] ?? '');
+            $noVerificado = str_starts_with($error, '__no_verificado__:');
+            $emailNoVer   = $noVerificado ? htmlspecialchars(explode(':', $error, 2)[1]) : '';
+            if ($noVerificado) $error = '';
+            ?>
+            <?php if ($getMsg === 'login_required'): ?>
                 <div class="alert alert-error" style="display:flex;align-items:center;gap:8px;">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 4a3 3 0 1 1 0 6 3 3 0 0 1 0-6zm0 13c-2.5 0-4.71-1.28-6-3.22C6.03 13.36 9.13 12 12 12s5.97 1.36 6 2.78C16.71 16.72 14.5 18 12 18z"/></svg>
                     Inicia sesión para continuar con tu compra.
+                </div>
+            <?php elseif ($getMsg === 'verificar_correo'): ?>
+                <div class="alert alert-success" style="line-height:1.5;">
+                    <strong>¡Cuenta creada!</strong> Te enviamos un correo a <strong><?= $getEmail ?></strong>. Verifica tu correo para poder iniciar sesión.
+                    <form method="POST" action="apis/reenviar_verificacion.php" style="margin-top:8px;">
+                        <input type="hidden" name="email" value="<?= $getEmail ?>">
+                        <button type="submit" style="background:none;border:none;color:#15803d;font-weight:600;cursor:pointer;text-decoration:underline;padding:0;font-size:13px;">Reenviar correo de verificación</button>
+                    </form>
+                </div>
+            <?php elseif ($getMsg === 'reenvio_ok'): ?>
+                <div class="alert alert-success">Correo de verificación reenviado a <strong><?= $getEmail ?></strong>. Revisa tu bandeja de entrada.</div>
+            <?php elseif ($noVerificado): ?>
+                <div class="alert alert-error" style="line-height:1.5;">
+                    <strong>Correo no verificado.</strong> Revisa tu bandeja de entrada y haz clic en el enlace que te enviamos.
+                    <form method="POST" action="apis/reenviar_verificacion.php" style="margin-top:8px;">
+                        <input type="hidden" name="email" value="<?= $emailNoVer ?>">
+                        <button type="submit" style="background:none;border:none;color:#dc2626;font-weight:600;cursor:pointer;text-decoration:underline;padding:0;font-size:13px;">Reenviar correo de verificación</button>
+                    </form>
                 </div>
             <?php elseif ($error): ?>
                 <div class="alert alert-error"><?= htmlspecialchars($error) ?></div>
