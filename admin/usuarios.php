@@ -31,6 +31,7 @@ if ($r) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrf_verify();
     $act = $_POST['accion'] ?? '';
     if ($act === 'crear') {
         $email = trim($_POST['email'] ?? '');
@@ -111,6 +112,7 @@ require __DIR__ . '/includes/layout.php';
 <div class="card">
     <h2>Nuevo usuario</h2>
     <form method="post">
+        <?= csrf_field() ?>
         <input type="hidden" name="accion" value="crear">
         <div class="form-row"><label>Email</label><input type="email" name="email" required></div>
         <div class="form-row"><label>Nombre</label><input name="nombre" required></div>
@@ -139,6 +141,7 @@ require __DIR__ . '/includes/layout.php';
                     <td><?= admin_h($u['email']) ?></td>
                     <td colspan="2" style="vertical-align:top;">
                         <form method="post" style="display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end;">
+                            <?= csrf_field() ?>
                             <input type="hidden" name="accion" value="editar">
                             <input type="hidden" name="user_id" value="<?= (int) $u['id'] ?>">
                             <div class="form-row" style="margin:0;">
@@ -164,6 +167,7 @@ require __DIR__ . '/includes/layout.php';
                         </form>
                         <?php if ((int) $u['id'] !== (int) ($_SESSION['admin_user_id'] ?? 0)): ?>
                             <form method="post" style="margin-top:8px;" onsubmit="return confirm('¿Eliminar usuario?');">
+                                <?= csrf_field() ?>
                                 <input type="hidden" name="accion" value="eliminar">
                                 <input type="hidden" name="user_id" value="<?= (int) $u['id'] ?>">
                                 <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--danger);">Eliminar</button>

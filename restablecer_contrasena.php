@@ -1,5 +1,8 @@
 <?php
+require_once __DIR__ . '/includes/security.php';
+security_session_configure();
 session_start();
+security_headers();
 require_once __DIR__ . '/apis/db.php';
 require_once __DIR__ . '/apis/mailer.php';
 
@@ -28,6 +31,7 @@ if (!$tokenData) {
 }
 
 if ($tokenData && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrf_verify();
     $nueva     = $_POST['contrasena_nueva']     ?? '';
     $confirmar = $_POST['contrasena_confirmar'] ?? '';
 
@@ -259,6 +263,7 @@ if ($tokenData && $_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php endif; ?>
 
             <form method="POST" action="restablecer_contrasena.php?token=<?= urlencode($token) ?>">
+                <?= csrf_field() ?>
                 <div class="form-group">
                     <label>Nueva contraseña</label>
                     <div class="fld-wrap">

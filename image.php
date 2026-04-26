@@ -250,7 +250,7 @@ if (!$fullPath) {
     }
     http_response_code(404);
     header('Content-Type: text/plain; charset=utf-8', true);
-    die('Imagen no encontrada: ' . $imagePath);
+    die('Imagen no encontrada.');
 }
 
 // Obtener información del archivo

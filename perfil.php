@@ -1,5 +1,8 @@
 <?php
+require_once __DIR__ . '/includes/security.php';
+security_session_configure();
 session_start();
+security_headers();
 require_once __DIR__ . '/apis/db.php';
 require_once __DIR__ . '/apis/mailer.php';
 require_once __DIR__ . '/includes/require_login.php';
@@ -16,6 +19,7 @@ $success = '';
 $error   = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cambiar_contrasena'])) {
+    csrf_verify();
     $actual    = $_POST['contrasena_actual']   ?? '';
     $nueva     = $_POST['contrasena_nueva']    ?? '';
     $confirmar = $_POST['contrasena_confirmar'] ?? '';
@@ -394,6 +398,7 @@ if ($cliente) {
         </div>
         <div class="section-body">
             <form method="POST" action="perfil.php" id="formPwd" autocomplete="off">
+                <?= csrf_field() ?>
                 <input type="hidden" name="cambiar_contrasena" value="1">
 
                 <div class="fld">

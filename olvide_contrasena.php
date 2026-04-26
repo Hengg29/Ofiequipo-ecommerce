@@ -1,5 +1,8 @@
 <?php
+require_once __DIR__ . '/includes/security.php';
+security_session_configure();
 session_start();
+security_headers();
 require_once __DIR__ . '/apis/db.php';
 require_once __DIR__ . '/includes/mailer.php';
 
@@ -12,6 +15,7 @@ $msg   = '';
 $type  = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrf_verify();
     $email = strtolower(trim($_POST['email'] ?? ''));
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $msg  = 'Ingresa un correo electrónico válido.';
@@ -114,6 +118,7 @@ body{display:flex;}
         <?php endif; ?>
         <?php if ($type !== 'success'): ?>
         <form method="POST">
+            <?= csrf_field() ?>
             <div class="form-group">
                 <label for="email">Correo Electrónico</label>
                 <input type="email" id="email" name="email"

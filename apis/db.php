@@ -17,6 +17,20 @@ $dbname = $_ENV['DB_NAME'] ?? 'ofiequipo2';
 $conn = new mysqli($host, $user, $pass, $dbname);
 
 if ($conn->connect_error) {
-    die("Error de conexión: " . $conn->connect_error);
+    error_log('[DB] Fallo de conexión: ' . $conn->connect_error);
+    http_response_code(503);
+    $isJson = str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json')
+           || str_contains($_SERVER['CONTENT_TYPE'] ?? '', 'json');
+    if ($isJson) {
+        header('Content-Type: application/json');
+        echo json_encode(['error' => 'Servicio temporalmente no disponible.']);
+    } else {
+        echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Error</title></head><body>'
+           . '<p style="font-family:sans-serif;padding:40px">Servicio temporalmente no disponible. Intenta más tarde.</p>'
+           . '</body></html>';
+    }
+    exit;
 }
+
+$conn->set_charset('utf8mb4');
 ?>

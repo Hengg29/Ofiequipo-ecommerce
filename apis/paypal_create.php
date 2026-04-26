@@ -21,9 +21,15 @@ function ppReq(string $url, string $method, $body, array $headers): array {
         CURLOPT_CUSTOMREQUEST  => $method,
         CURLOPT_POSTFIELDS     => $body,
         CURLOPT_HTTPHEADER     => $headers,
+        CURLOPT_TIMEOUT        => 15,
     ]);
-    $resp = curl_exec($ch);
+    $resp  = curl_exec($ch);
+    $errno = curl_errno($ch);
     curl_close($ch);
+    if ($errno || $resp === false) {
+        error_log('[PayPal] cURL error ' . $errno . ' en ' . $url);
+        return [];
+    }
     return json_decode($resp, true) ?? [];
 }
 
@@ -51,6 +57,11 @@ $total = 0.0;
 $items = [];
 foreach ($cart as $item) {
     $stmt = $conn->prepare("SELECT nombre, precio FROM producto WHERE id = ? AND activo = 1");
+    if (!$stmt) {
+        error_log('[PayPal] prepare falló: ' . $conn->error);
+        echo json_encode(['error' => 'Error interno al procesar el carrito.']);
+        exit;
+    }
     $stmt->bind_param('i', $item['id']);
     $stmt->execute();
     $row = $stmt->get_result()->fetch_assoc();

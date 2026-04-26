@@ -9,34 +9,50 @@ $activeId  = 'clientes';
 $msg = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['nuevo'])) {
-    $nom = trim($_POST['nombre'] ?? '');
-    $ape = trim($_POST['apellido'] ?? '');
-    $em  = trim($_POST['email'] ?? '');
-    $tel = trim($_POST['telefono'] ?? '');
+    $nom = mb_substr(trim($_POST['nombre']   ?? ''), 0, 120);
+    $ape = mb_substr(trim($_POST['apellido'] ?? ''), 0, 120);
+    $em  = mb_substr(trim($_POST['email']    ?? ''), 0, 190);
+    $tel = mb_substr(trim($_POST['telefono'] ?? ''), 0, 40);
     if ($nom !== '' && $em !== '') {
-        $st = $conn->prepare('INSERT INTO admin_clientes (nombre, apellido, email, telefono) VALUES (?,?,?,?)');
-        if ($st) {
-            $st->bind_param('ssss', $nom, $ape, $em, $tel);
-            $st->execute();
-            $st->close();
-            admin_audit($conn, 'crear', 'cliente', (int) $conn->insert_id, $em);
-            $msg = 'Cliente registrado.';
+        if (!filter_var($em, FILTER_VALIDATE_EMAIL)) {
+            $msg = 'El correo electrónico no tiene un formato válido.';
+        } else {
+            $st = $conn->prepare('INSERT INTO admin_clientes (nombre, apellido, email, telefono) VALUES (?,?,?,?)');
+            if ($st) {
+                $st->bind_param('ssss', $nom, $ape, $em, $tel);
+                if ($st->execute()) {
+                    admin_audit($conn, 'crear', 'cliente', (int) $conn->insert_id, $em);
+                    $msg = 'Cliente registrado.';
+                } else {
+                    error_log('[Admin/clientes] execute insert: ' . $st->error);
+                    $msg = 'No se pudo registrar el cliente. El correo puede estar duplicado.';
+                }
+                $st->close();
+            } else {
+                error_log('[Admin/clientes] prepare insert: ' . $conn->error);
+                $msg = 'Error interno al registrar el cliente.';
+            }
         }
+    } else {
+        $msg = 'Nombre y correo son obligatorios.';
     }
 }
 
 $rows = [];
 if (admin_table_exists($conn, 'admin_clientes')) {
+    // Whitelist explícita para ORDER BY
     $order = $_GET['sort'] ?? 'reciente';
     $ob    = $order === 'nombre' ? 'c.nombre ASC' : 'c.creado_en DESC';
-    $sql = "SELECT c.*, 
+    $sql = "SELECT c.*,
             (SELECT COUNT(*) FROM admin_pedidos p WHERE p.cliente_id = c.id) AS n_pedidos,
             (SELECT COALESCE(SUM(p.total),0) FROM admin_pedidos p WHERE p.cliente_id = c.id AND p.estado <> 'cancelado') AS valor
             FROM admin_clientes c
             ORDER BY $ob
             LIMIT 400";
-    $r = @$conn->query($sql);
-    if ($r) {
+    $r = $conn->query($sql);
+    if ($r === false) {
+        error_log('[Admin/clientes] query falló: ' . $conn->error);
+    } else {
         while ($row = $r->fetch_assoc()) {
             $rows[] = $row;
         }

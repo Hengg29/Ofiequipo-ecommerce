@@ -122,13 +122,22 @@ function sendConfirmacionPedido(string $to, string $nombre, array $pedido): bool
 
     $itemsHtml = '';
     foreach ($pedido['items'] ?? [] as $it) {
-        $n = htmlspecialchars($it['nombre'] ?? '');
-        $q = (int)($it['cantidad'] ?? 1);
-        $p = number_format((float)($it['precio'] ?? 0), 2);
+        $n   = htmlspecialchars($it['nombre'] ?? '');
+        $q   = (int)($it['cantidad'] ?? 1);
+        $p   = number_format((float)($it['precio'] ?? 0), 2);
+        $img = $it['imagen'] ?? '';
+        $imgCell = $img
+            ? "<img src='{$img}' alt='" . htmlspecialchars($it['nombre'] ?? '') . "' width='56' height='56' style='width:56px;height:56px;object-fit:cover;border-radius:8px;display:block;border:1px solid #e2e8f0;'>"
+            : "<div style='width:56px;height:56px;background:#f1f5f9;border-radius:8px;border:1px solid #e2e8f0;'></div>";
         $itemsHtml .= "<tr>
-            <td style='padding:10px 0;border-bottom:1px solid #f1f5f9;color:#0f172a;font-size:14px;'>{$n}</td>
-            <td style='padding:10px 0;border-bottom:1px solid #f1f5f9;color:#475569;font-size:14px;text-align:center;'>{$q}</td>
-            <td style='padding:10px 0;border-bottom:1px solid #f1f5f9;color:#0f172a;font-size:14px;text-align:right;'>\${$p} {$moneda}</td>
+            <td style='padding:12px 0;border-bottom:1px solid #f1f5f9;vertical-align:middle;'>
+                <div style='display:flex;align-items:center;gap:12px;'>
+                    {$imgCell}
+                    <span style='color:#0f172a;font-size:14px;font-weight:500;'>{$n}</span>
+                </div>
+            </td>
+            <td style='padding:12px 0;border-bottom:1px solid #f1f5f9;color:#475569;font-size:14px;text-align:center;vertical-align:middle;'>{$q}</td>
+            <td style='padding:12px 0;border-bottom:1px solid #f1f5f9;color:#0f172a;font-size:14px;text-align:right;vertical-align:middle;font-weight:600;'>\${$p} {$moneda}</td>
         </tr>";
     }
 
@@ -149,8 +158,8 @@ function sendConfirmacionPedido(string $to, string $nombre, array $pedido): bool
             <thead>
                 <tr>
                     <th style='font-size:12px;color:#94a3b8;font-weight:600;text-align:left;padding-bottom:8px;border-bottom:2px solid #e2e8f0;'>PRODUCTO</th>
-                    <th style='font-size:12px;color:#94a3b8;font-weight:600;text-align:center;padding-bottom:8px;border-bottom:2px solid #e2e8f0;'>CANT.</th>
-                    <th style='font-size:12px;color:#94a3b8;font-weight:600;text-align:right;padding-bottom:8px;border-bottom:2px solid #e2e8f0;'>PRECIO</th>
+                    <th style='font-size:12px;color:#94a3b8;font-weight:600;text-align:center;padding-bottom:8px;border-bottom:2px solid #e2e8f0;width:60px;'>CANT.</th>
+                    <th style='font-size:12px;color:#94a3b8;font-weight:600;text-align:right;padding-bottom:8px;border-bottom:2px solid #e2e8f0;width:110px;'>PRECIO UNIT.</th>
                 </tr>
             </thead>
             <tbody>{$itemsHtml}</tbody>

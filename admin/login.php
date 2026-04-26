@@ -10,10 +10,17 @@ if (!empty($_SESSION['admin_user_id'])) {
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrf_verify();
+
+    if (!rate_limit_ok($conn, 'admin_login')) {
+        $error = 'Demasiados intentos fallidos. Espera 5 minutos.';
+    } else {
+
     $email = trim($_POST['email'] ?? '');
     $pass = $_POST['password'] ?? '';
 
     if ($email === '' || $pass === '') {
+        rate_limit_record($conn, 'admin_login', false);
         $error = 'Introduce correo y contraseña.';
     } else {
         $stmt = $conn->prepare(
@@ -29,22 +36,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->close();
 
             if (!$u || !(int) $u['activo']) {
+                rate_limit_record($conn, 'admin_login', false);
                 $error = 'Credenciales incorrectas o cuenta desactivada.';
             } elseif (!password_verify($pass, $u['password_hash'])) {
+                rate_limit_record($conn, 'admin_login', false);
                 $error = 'Credenciales incorrectas o cuenta desactivada.';
             } else {
+                rate_limit_clear($conn, 'admin_login');
+                session_regenerate_id(true);
                 $_SESSION['admin_user_id'] = (int) $u['id'];
                 $_SESSION['admin_email'] = $email;
                 $_SESSION['admin_nombre'] = $u['nombre'];
                 $_SESSION['admin_rol_slug'] = $u['rol_slug'];
                 $_SESSION['admin_rol_nombre'] = $u['rol_nombre'];
                 admin_audit($conn, 'login', 'sesion', (int) $u['id'], 'Inicio de sesión panel');
-                admin_redirect('index.php');
+                $dest = match($u['rol_slug']) {
+                    'repartidor' => 'repartidor.php',
+                    default      => 'index.php',
+                };
+                admin_redirect($dest);
             }
         } else {
             $error = 'No se encontraron las tablas del panel. Ejecuta db/Ofi_com.sql en MySQL.';
         }
     }
+    } // end rate_limit_ok
 }
 ?>
 <!DOCTYPE html>
@@ -190,6 +206,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php if ($error !== ''): ?>
             <div class="err"><?= admin_h($error) ?></div><?php endif; ?>
         <form method="post" autocomplete="on">
+            <?= csrf_field() ?>
             <label for="email">Correo</label>
             <input type="email" name="email" id="email" required value="<?= admin_h($_POST['email'] ?? '') ?>">
             <label for="password">Contraseña</label>

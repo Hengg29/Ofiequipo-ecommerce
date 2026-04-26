@@ -1,12 +1,14 @@
 <?php
+require_once __DIR__ . '/includes/security.php';
+security_session_configure();
 session_start();
+security_headers();
 require_once __DIR__ . '/apis/db.php';
 require_once __DIR__ . '/includes/mailer.php';
 
 $redirectAfterLogin = trim($_GET['redirect'] ?? '');
 if (!empty($_SESSION['user_id'])) {
-    header('Location: ' . ($redirectAfterLogin ?: 'index.php'));
-    exit;
+    safe_redirect($redirectAfterLogin ?: 'index.php');
 }
 
 $error = '';
@@ -15,6 +17,7 @@ $error = '';
 const REGISTRO_ROL_CLIENTE = 2;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrf_verify();
     $nombre   = trim($_POST['nombre']   ?? '');
     $email    = trim($_POST['email']    ?? '');
     $password = $_POST['password']      ?? '';
@@ -552,6 +555,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php endif; ?>
 
             <form method="POST" action="?redirect=<?= htmlspecialchars($redirectAfterLogin) ?>">
+                <?= csrf_field() ?>
                 <div class="form-group">
                     <label for="nombre">Nombre Completo</label>
                     <input type="text" id="nombre" name="nombre"

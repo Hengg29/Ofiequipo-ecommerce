@@ -78,9 +78,9 @@
             transition:transform 0.15s,box-shadow 0.15s;
         " onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='none'">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V8l8 5 8-5v10zm-8-7L4 6h16l-8 5z"/></svg>
-            Solicitar Cotización
+            Proceder a hacer compra
         </a>
-        <a href="carrito.php" style="
+        <!--<a href="carrito.php" style="
             display:flex;align-items:center;justify-content:center;gap:8px;
             width:100%;padding:11px;
             background:white;color:#1e3a8a;
@@ -88,7 +88,7 @@
             font-size:14px;font-weight:600;text-decoration:none;
             transition:background 0.15s;
         " onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='white'">
-            Ver carrito completo
+            Ver carrito completo-->
         </a>
     </div>
 </div>

@@ -51,11 +51,15 @@ INSERT IGNORE INTO roles (id, nombre) VALUES
   (3, 'vendedor');
 
 CREATE TABLE IF NOT EXISTS usuarios (
-  id              BIGINT AUTO_INCREMENT PRIMARY KEY,
-  email           VARCHAR(190) NOT NULL UNIQUE,
-  contrasena_hash VARCHAR(255) NOT NULL,
-  rol_id          BIGINT DEFAULT NULL,
-  creado_en       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  id                  BIGINT AUTO_INCREMENT PRIMARY KEY,
+  email               VARCHAR(190) NOT NULL UNIQUE,
+  nombre              VARCHAR(120) DEFAULT NULL,
+  contrasena_hash     VARCHAR(255) NOT NULL,
+  email_verificado    TINYINT(1) NOT NULL DEFAULT 0,
+  verificacion_token  VARCHAR(255) DEFAULT NULL,
+  token_expira        DATETIME DEFAULT NULL,
+  rol_id              BIGINT DEFAULT NULL,
+  creado_en           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_usuario_rol
     FOREIGN KEY (rol_id) REFERENCES roles(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -318,6 +322,16 @@ CREATE TABLE IF NOT EXISTS admin_auditoria (
   FOREIGN KEY (usuario_id) REFERENCES admin_usuarios(id) ON DELETE SET NULL,
   INDEX idx_admin_auditoria_fecha   (creado_en),
   INDEX idx_admin_auditoria_entidad (entidad, entidad_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ─── Rate limiting de autenticación ──────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS login_attempts (
+  id           INT AUTO_INCREMENT PRIMARY KEY,
+  ip           VARCHAR(45)  NOT NULL,
+  context      VARCHAR(64)  NOT NULL,
+  success      TINYINT(1)   NOT NULL DEFAULT 0,
+  attempted_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_login_attempts_lookup (ip, context, attempted_at, success)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- =============================================================================

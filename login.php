@@ -1,5 +1,8 @@
 <?php
+require_once __DIR__ . '/includes/security.php';
+security_session_configure();
 session_start();
+security_headers();
 require_once __DIR__ . '/apis/db.php';
 
 $error = '';
@@ -7,8 +10,7 @@ $success = '';
 
 $redirectAfterLogin = trim($_GET['redirect'] ?? '');
 if (!empty($_SESSION['user_id'])) {
-    header('Location: ' . ($redirectAfterLogin ?: 'index.php'));
-    exit;
+    safe_redirect($redirectAfterLogin ?: 'index.php');
 }
 
 if (isset($_GET['registro']) && $_GET['registro'] === '1') {
@@ -16,6 +18,12 @@ if (isset($_GET['registro']) && $_GET['registro'] === '1') {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrf_verify();
+
+    if (!rate_limit_ok($conn, 'login_publico')) {
+        $error = 'Demasiados intentos fallidos. Espera 5 minutos antes de intentarlo de nuevo.';
+    } else {
+
     $email    = trim($_POST['email']    ?? '');
     $password = $_POST['password']      ?? '';
 
@@ -23,6 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $emailNorm  = strtolower($emailInput);
 
     if (empty($emailInput) || empty($password)) {
+        rate_limit_record($conn, 'login_publico', false);
         $error = 'Por favor completa todos los campos.';
     } else {
         // 1) Intentar login de panel admin (admin_usuarios)
@@ -43,6 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmtAdmin->close();
 
             if ($adminUser && (int) $adminUser['activo'] === 1 && password_verify($password, $adminUser['password_hash'])) {
+                rate_limit_clear($conn, 'login_publico');
                 session_regenerate_id(true);
                 $_SESSION['admin_user_id']   = (int) $adminUser['id'];
                 $_SESSION['admin_email']     = $adminUser['email'];
@@ -76,6 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!(int)$user['email_verificado']) {
                     $error = '__no_verificado__:' . $emailNorm;
                 } elseif (password_verify($password, $user['contrasena_hash'])) {
+                    rate_limit_clear($conn, 'login_publico');
                     session_regenerate_id(true);
                     $_SESSION['user_id']     = (int) $user['id'];
                     $_SESSION['user_email']  = $emailNorm;
@@ -88,14 +99,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($authenticated) {
             $dest = trim($_POST['redirect'] ?? $_GET['redirect'] ?? '');
-            header('Location: ' . ($dest ?: 'index.php'));
-            exit;
+            safe_redirect($dest ?: 'index.php');
         }
 
         if (!$error) {
+            rate_limit_record($conn, 'login_publico', false);
             $error = 'Correo o contraseña incorrectos.';
         }
-    }
+    } // end else (empty check)
+    } // end else (rate_limit_ok)
 }
 ?>
 <!DOCTYPE html>
@@ -539,6 +551,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php endif; ?>
 
             <form method="POST" action="?redirect=<?= htmlspecialchars($redirectAfterLogin) ?>">
+                <?= csrf_field() ?>
                 <div class="form-group">
                     <label for="email">Correo Electrónico</label>
                     <input type="email" id="email" name="email"

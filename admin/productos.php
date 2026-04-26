@@ -18,20 +18,27 @@ if (admin_table_exists($conn, 'producto')) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_activo']) && $hasActivo) {
     $pid = (int) ($_POST['producto_id'] ?? 0);
     $nv  = (int) ($_POST['nuevo_activo'] ?? 0);
-    $st  = $conn->prepare('UPDATE producto SET activo = ? WHERE id = ?');
-    $st->bind_param('ii', $nv, $pid);
-    $st->execute();
-    $st->close();
-    admin_audit($conn, 'toggle_activo', 'producto', $pid, (string) $nv);
-    $msg = 'Estado actualizado.';
+    if ($pid > 0) {
+        $st = $conn->prepare('UPDATE producto SET activo = ? WHERE id = ?');
+        if ($st) {
+            $st->bind_param('ii', $nv, $pid);
+            $st->execute();
+            $st->close();
+            admin_audit($conn, 'toggle_activo', 'producto', $pid, (string) $nv);
+            $msg = 'Estado actualizado.';
+        } else {
+            error_log('[Admin/productos] prepare toggle_activo: ' . $conn->error);
+            $msg = 'Error al actualizar el estado.';
+        }
+    }
 }
 
-$q = $hasPrecio
-    ? 'SELECT p.*, c.nombre AS cat_nombre FROM producto p LEFT JOIN categoria c ON c.id = p.categoria_id ORDER BY p.id DESC LIMIT 500'
-    : 'SELECT p.*, c.nombre AS cat_nombre FROM producto p LEFT JOIN categoria c ON c.id = p.categoria_id ORDER BY p.id DESC LIMIT 500';
-$res = @$conn->query($q);
+$q    = 'SELECT p.*, c.nombre AS cat_nombre FROM producto p LEFT JOIN categoria c ON c.id = p.categoria_id ORDER BY p.id DESC LIMIT 500';
+$res  = $conn->query($q);
 $rows = [];
-if ($res) {
+if ($res === false) {
+    error_log('[Admin/productos] query falló: ' . $conn->error);
+} else {
     while ($row = $res->fetch_assoc()) {
         $rows[] = $row;
     }
