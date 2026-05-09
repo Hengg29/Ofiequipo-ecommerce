@@ -200,7 +200,7 @@ require __DIR__ . '/includes/layout.php';
                 <tr>
                     <td style="font-weight:600;"><?= admin_h($p['numero_pedido']) ?></td>
                     <td class="muted"><?= admin_h($p['creado_en']) ?></td>
-                    <td><span class="badge <?= admin_h(str_replace(' ', '_', $p['estado'])) ?>"><?= admin_h($p['estado']) ?></span></td>
+                    <td><?= admin_estado_badge($p['estado']) ?></td>
                     <td>
                         <?= admin_h($p['nombre_contacto']) ?>
                         <br><span class="muted"><?= admin_h($p['email_contacto']) ?></span>

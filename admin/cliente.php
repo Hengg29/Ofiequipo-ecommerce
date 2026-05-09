@@ -113,9 +113,7 @@ require __DIR__ . '/includes/layout.php';
                                 style="color:var(--primary); font-weight:600; text-decoration:none;"><?= admin_h($p['numero_pedido']) ?></a>
                         </td>
                         <td class="muted"><?= admin_h($p['creado_en']) ?></td>
-                        <td><span
-                                class="badge <?= admin_h(str_replace(' ', '_', $p['estado'])) ?>"><?= admin_h($p['estado']) ?></span>
-                        </td>
+                        <td><?= admin_estado_badge($p['estado']) ?></td>
                         <td style="font-weight:600;">$<?= number_format((float) $p['total'], 2) ?></td>
                     </tr>
                 <?php endforeach; ?>

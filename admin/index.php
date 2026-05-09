@@ -119,65 +119,106 @@ require __DIR__ . '/includes/layout.php';
 <?php endif; ?>
 
 <!-- Dashboard Header -->
-<div
-    style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:28px; flex-wrap:wrap; gap:16px;">
+<div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:16px;">
     <div class="page-head" style="margin-bottom:0;">
-        <h1>Resumen del Panel</h1>
-        <p>Vista general del rendimiento de tu espacio de trabajo, analíticas en tiempo real y métricas operativas del periodo actual.
-        </p>
+        <h1>Panel de Control</h1>
+        <p>Bienvenido de vuelta, <strong><?= admin_h($_SESSION['admin_nombre'] ?? 'Admin') ?></strong> · <?= date('d M Y') ?></p>
     </div>
-    <div class="total-sales-badge">
-        <div class="ts-label">Ventas Totales</div>
-        <div class="ts-val">$<?= number_format($ventasTot, 2) ?></div>
-    </div>
+    <?php if (admin_can('ventas')): ?>
+    <a class="btn btn-primary" href="ventas_nuevo.php">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Nuevo Pedido
+    </a>
+    <?php endif; ?>
 </div>
 
 <!-- KPI Cards -->
-<div class="grid kpi" style="grid-template-columns: repeat(3, 1fr); margin-bottom:28px;">
+<div style="display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px;">
+    <!-- Ventas totales -->
+    <div style="background:linear-gradient(135deg,#1e3a8a,#2563eb); border-radius:16px; padding:22px; color:white; box-shadow:0 8px 24px rgba(37,99,235,.3);">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
+            <div style="background:rgba(255,255,255,0.18);border-radius:10px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;">
+                <svg width="20" height="20" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6"/></svg>
+            </div>
+            <span style="font-size:10px;font-weight:700;letter-spacing:.08em;background:rgba(255,255,255,0.15);padding:3px 8px;border-radius:6px;text-transform:uppercase;">Total</span>
+        </div>
+        <div style="font-size:11px;font-weight:600;opacity:.7;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Ingresos</div>
+        <div style="font-family:'Manrope',sans-serif;font-size:1.75rem;font-weight:800;line-height:1.1;">$<?= number_format($ventasTot, 2) ?></div>
+        <div style="font-size:11px;opacity:.6;margin-top:6px;">Sin pedidos cancelados</div>
+    </div>
+    <!-- Pedidos hoy -->
     <div class="kpi-box">
         <div class="kpi-header">
-            <div class="kpi-icon">
-                <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <circle cx="9" cy="21" r="1" />
-                    <circle cx="20" cy="21" r="1" />
-                    <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6" />
-                </svg>
+            <div class="kpi-icon" style="background:rgba(249,115,22,.1);color:#ea580c;">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
             </div>
-            <span class="kpi-badge kpi-badge-live">En vivo</span>
+            <span class="kpi-badge kpi-badge-live">Hoy</span>
         </div>
-        <div class="lbl">Pedidos Hoy</div>
+        <div class="lbl">Pedidos de Hoy</div>
         <div class="val"><?= $pedHoy ?></div>
         <div class="sub">Semana: <?= $pedSemana ?> · Mes: <?= $pedMes ?></div>
     </div>
+    <!-- Pendientes -->
     <div class="kpi-box">
         <div class="kpi-header">
-            <div class="kpi-icon">
-                <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6" />
-                </svg>
+            <div class="kpi-icon" style="background:rgba(245,158,11,.1);color:#d97706;">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
             </div>
-            <span class="kpi-badge kpi-badge-daily">Diario</span>
+            <?php if ($pend > 0): ?>
+            <span style="background:#fef3c7;color:#b45309;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;">Atención</span>
+            <?php endif; ?>
         </div>
-        <div class="lbl">Ingresos</div>
-        <div class="val">$<?= number_format($ingresos, 2) ?></div>
-        <div class="sub">Ingresos acumulados (sin cancelados)</div>
+        <div class="lbl">Pendientes</div>
+        <div class="val" style="color:<?= $pend > 0 ? '#b45309' : 'var(--text)' ?>;"><?= $pend ?></div>
+        <div class="sub">En preparación: <?= $prep ?></div>
     </div>
+    <!-- Clientes -->
     <div class="kpi-box">
         <div class="kpi-header">
-            <div class="kpi-icon">
-                <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-                    <circle cx="8.5" cy="7" r="4" />
-                    <path d="M20 8v6M23 11h-6" />
-                </svg>
+            <div class="kpi-icon" style="background:rgba(34,197,94,.1);color:#16a34a;">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></svg>
             </div>
-            <span class="kpi-badge kpi-badge-target">Meta: 10</span>
+            <span class="kpi-badge" style="background:rgba(34,197,94,.1);color:#16a34a;">Este mes</span>
         </div>
         <div class="lbl">Clientes Nuevos</div>
         <div class="val"><?= $nuevosMes ?></div>
-        <div class="sub">Este mes · Última semana: <?= $newClientsW ?></div>
+        <div class="sub">Última semana: <?= $newClientsW ?></div>
     </div>
 </div>
+
+<!-- Pipeline de estados -->
+<?php $totalPedidos = $pend + $prep + $env + $ent + $cancel; ?>
+<?php if ($totalPedidos > 0): ?>
+<div class="card" style="margin-bottom:24px;">
+    <div class="section-header" style="margin-bottom:18px;">
+        <h2>Pipeline de pedidos</h2>
+        <span class="muted"><?= $totalPedidos ?> pedidos en total</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;">
+        <?php
+        $pipeline = [
+            ['label'=>'Pendientes',      'val'=>$pend,   'color'=>'#f59e0b','bg'=>'rgba(245,158,11,.1)', 'icon'=>'⏳'],
+            ['label'=>'En preparación',  'val'=>$prep,   'color'=>'#f97316','bg'=>'rgba(249,115,22,.1)', 'icon'=>'📦'],
+            ['label'=>'Enviados',        'val'=>$env,    'color'=>'#8b5cf6','bg'=>'rgba(139,92,246,.1)', 'icon'=>'🚚'],
+            ['label'=>'Entregados',      'val'=>$ent,    'color'=>'#22c55e','bg'=>'rgba(34,197,94,.1)',  'icon'=>'✅'],
+            ['label'=>'Cancelados',      'val'=>$cancel, 'color'=>'#ef4444','bg'=>'rgba(239,68,68,.1)',  'icon'=>'❌'],
+        ];
+        foreach ($pipeline as $p):
+            $pct = $totalPedidos > 0 ? round(($p['val'] / $totalPedidos) * 100) : 0;
+        ?>
+        <div style="text-align:center;">
+            <div style="font-size:22px;margin-bottom:8px;"><?= $p['icon'] ?></div>
+            <div style="font-family:'Manrope',sans-serif;font-size:1.6rem;font-weight:800;color:<?= $p['color'] ?>;"><?= $p['val'] ?></div>
+            <div style="font-size:11px;color:var(--muted);margin:4px 0 8px;font-weight:500;"><?= $p['label'] ?></div>
+            <div style="height:6px;background:var(--neutral);border-radius:99px;overflow:hidden;">
+                <div style="height:100%;width:<?= $pct ?>%;background:<?= $p['color'] ?>;border-radius:99px;transition:width .6s;"></div>
+            </div>
+            <div style="font-size:10px;color:var(--muted);margin-top:4px;"><?= $pct ?>%</div>
+        </div>
+        <?php endforeach; ?>
+    </div>
+</div>
+<?php endif; ?>
 
 <!-- Content Grid: Orders + Products -->
 <div style="display:grid; grid-template-columns: 1.4fr 1fr; gap:20px; align-items:start; margin-bottom:24px;">
@@ -217,9 +258,7 @@ require __DIR__ . '/includes/layout.php';
                         <tr>
                             <td style="font-weight:600;"><?= admin_h($o['numero_pedido']) ?></td>
                             <td><?= admin_h($o['nombre_contacto']) ?></td>
-                            <td><span
-                                    class="badge <?= admin_h(str_replace(' ', '_', $o['estado'])) ?>"><?= admin_h($o['estado']) ?></span>
-                            </td>
+                            <td><?= admin_estado_badge($o['estado']) ?></td>
                             <td>$<?= number_format((float) $o['total'], 2) ?></td>
                             <td><a class="btn btn-ghost btn-sm" href="venta.php?id=<?= (int) $o['id'] ?>">Ver</a></td>
                         </tr>

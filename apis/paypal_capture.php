@@ -66,8 +66,15 @@ if (($capture['status'] ?? '') === 'COMPLETED') {
     $monto = (float)($pmt['amount']['value'] ?? 0);
     $cart  = $_SESSION['cart'] ?? [];
 
-    $payerName  = trim(($capture['payer']['name']['given_name'] ?? '') . ' ' . ($capture['payer']['name']['surname'] ?? ''));
     $payerEmail = $capture['payer']['email_address'] ?? '';
+
+    // Usar datos del formulario de envío (nombre real del cliente, no el de PayPal)
+    $cd          = $_SESSION['checkout_datos'] ?? [];
+    $contactNombre = trim(($cd['nombre'] ?? '') . ' ' . ($cd['apellido'] ?? ''));
+    $contactEmail  = $cd['email'] ?? $payerEmail;
+    $contactTel    = $cd['telefono'] ?? '';
+    // Fallback al nombre de PayPal si no se llenó el formulario
+    $payerName  = $contactNombre ?: trim(($capture['payer']['name']['given_name'] ?? '') . ' ' . ($capture['payer']['name']['surname'] ?? ''));
 
     $pedidoId      = 0;
     $adminPedidoId = 0;
@@ -125,34 +132,40 @@ if (($capture['status'] ?? '') === 'COMPLETED') {
         if (!$ipg) throw new RuntimeException('prepare pagos: ' . $conn->error);
         $ipg->bind_param('id', $pedidoId, $monto); $ipg->execute(); $ipg->close();
 
-        // Buscar o crear admin_cliente por email
+        // Buscar o crear admin_cliente usando el email del formulario (o PayPal como fallback)
         $adminClienteId = null;
-        if ($payerEmail) {
+        $lookupEmail = $contactEmail ?: $payerEmail;
+        if ($lookupEmail) {
             $sac = $conn->prepare("SELECT id FROM admin_clientes WHERE email = ? LIMIT 1");
             if (!$sac) throw new RuntimeException('prepare admin_clientes select: ' . $conn->error);
-            $sac->bind_param('s', $payerEmail); $sac->execute();
+            $sac->bind_param('s', $lookupEmail); $sac->execute();
             $acRow = $sac->get_result()->fetch_assoc(); $sac->close();
             if ($acRow) {
                 $adminClienteId = (int)$acRow['id'];
+                // Actualizar teléfono si el cliente no lo tenía
+                if ($contactTel) {
+                    $upTel = $conn->prepare("UPDATE admin_clientes SET telefono = ? WHERE id = ? AND (telefono IS NULL OR telefono = '')");
+                    if ($upTel) { $upTel->bind_param('si', $contactTel, $adminClienteId); $upTel->execute(); $upTel->close(); }
+                }
             } else {
-                $nameParts = explode(' ', $payerName, 2);
-                $firstName = $nameParts[0] ?? '';
-                $lastName  = $nameParts[1] ?? '';
-                $iac = $conn->prepare("INSERT INTO admin_clientes (nombre, apellido, email) VALUES (?, ?, ?)");
+                $firstName = $cd['nombre']   ?? explode(' ', $payerName, 2)[0] ?? '';
+                $lastName  = $cd['apellido'] ?? explode(' ', $payerName, 2)[1] ?? '';
+                $iac = $conn->prepare("INSERT INTO admin_clientes (nombre, apellido, email, telefono) VALUES (?, ?, ?, ?)");
                 if (!$iac) throw new RuntimeException('prepare admin_clientes insert: ' . $conn->error);
-                $iac->bind_param('sss', $firstName, $lastName, $payerEmail); $iac->execute();
+                $iac->bind_param('ssss', $firstName, $lastName, $lookupEmail, $contactTel); $iac->execute();
                 $adminClienteId = (int)$conn->insert_id; $iac->close();
             }
         }
 
-        // Insertar en admin_pedidos
+        // Insertar en admin_pedidos con datos reales del formulario
         $numeroPedido = 'PP-' . $pedidoId . '-' . date('Ymd');
         $iap = $conn->prepare(
-            "INSERT INTO admin_pedidos (numero_pedido, cliente_id, nombre_contacto, email_contacto, estado, subtotal, total, metodo_pago)
-             VALUES (?, ?, ?, ?, 'pendiente', ?, ?, 'paypal')"
+            "INSERT INTO admin_pedidos (numero_pedido, cliente_id, nombre_contacto, email_contacto, telefono_contacto, estado, subtotal, total, metodo_pago)
+             VALUES (?, ?, ?, ?, ?, 'pendiente', ?, ?, 'paypal')"
         );
         if (!$iap) throw new RuntimeException('prepare admin_pedidos: ' . $conn->error);
-        $iap->bind_param('sissdd', $numeroPedido, $adminClienteId, $payerName, $payerEmail, $monto, $monto);
+        $emailContacto = $contactEmail ?: $payerEmail;
+        $iap->bind_param('sisssdd', $numeroPedido, $adminClienteId, $payerName, $emailContacto, $contactTel, $monto, $monto);
         $iap->execute();
         $adminPedidoId = (int)$conn->insert_id; $iap->close();
 
@@ -185,10 +198,11 @@ if (($capture['status'] ?? '') === 'COMPLETED') {
 
         $conn->commit();
 
-    } catch (RuntimeException $e) {
-        $conn->rollback();
-        error_log('[PayPal Capture] Rollback pedido #' . $pedidoId . ': ' . $e->getMessage());
-        echo json_encode(['error' => 'Error al registrar el pedido. Contacta a soporte con tu ID de PayPal: ' . ($capture['id'] ?? '')]);
+    } catch (Throwable $e) {
+        try { $conn->rollback(); } catch (Throwable $_) {}
+        error_log('[PayPal Capture] Rollback pedido #' . $pedidoId . ': ' . $e->getMessage() . ' en ' . $e->getFile() . ':' . $e->getLine());
+        ob_clean();
+        echo json_encode(['error' => 'Error al registrar el pedido. ID PayPal: ' . ($capture['id'] ?? 'N/A')]);
         exit;
     }
 

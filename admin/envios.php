@@ -120,7 +120,7 @@ require __DIR__ . '/includes/layout.php';
                 <tr id="row-<?= (int) $r['pedido_id'] ?>" style="<?= $highlight === (int) $r['pedido_id'] ? 'outline:1px solid var(--accent);' : '' ?>">
                     <td><?= admin_h($r['numero_pedido']) ?></td>
                     <td><?= admin_h($r['nombre_contacto']) ?><br><span class="muted"><?= admin_h($r['email_contacto']) ?></span></td>
-                    <td><span class="badge <?= admin_h(str_replace(' ', '_', $r['estado'])) ?>"><?= admin_h($r['estado']) ?></span></td>
+                    <td><?= admin_estado_badge($r['estado']) ?></td>
                     <td><?= admin_h($r['guia_rastreo']) ?></td>
                     <td><?= admin_h($r['transportista']) ?></td>
                     <td class="muted"><?= admin_h($r['actualizado_en']) ?></td>

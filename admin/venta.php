@@ -228,7 +228,7 @@ require __DIR__ . '/includes/layout.php';
                     <span class="muted"
                         style="display:block; font-size:11px; text-transform:uppercase; letter-spacing:.05em; margin-bottom:2px;">Estado
                         envío</span>
-                    <span class="badge <?= admin_h($envio['estado']) ?>"><?= admin_h($envio['estado']) ?></span>
+                    <?= admin_estado_badge($envio['estado']) ?>
                 </div>
                 <div>
                     <span class="muted"

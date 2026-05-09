@@ -87,11 +87,9 @@ $sidebarIcons = [
         .sidebar {
             width: var(--sidebar-w);
             flex-shrink: 0;
-            background: var(--surface);
-            border-right: 1px solid var(--border-light);
+            background: linear-gradient(175deg, #0f172a 0%, #1e3a8a 55%, #1d4ed8 100%);
             position: fixed;
-            top: 0;
-            left: 0;
+            top: 0; left: 0;
             height: 100vh;
             overflow-y: auto;
             display: flex;
@@ -100,60 +98,68 @@ $sidebarIcons = [
         }
 
         .sidebar-brand {
-            padding: 24px 20px 20px;
-            border-bottom: 1px solid var(--border-light);
+            padding: 22px 20px 18px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .sidebar-brand-icon {
+            width: 36px; height: 36px;
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.18);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
         }
         .sidebar-brand-name {
             font-family: 'Manrope', sans-serif;
             font-weight: 800;
-            font-size: 14px;
-            color: var(--primary);
-            letter-spacing: 1.5px;
+            font-size: 13px;
+            color: white;
+            letter-spacing: 1px;
             text-transform: uppercase;
+            line-height: 1.2;
         }
         .sidebar-brand span {
             display: block;
-            font-family: 'Manrope', sans-serif;
             font-size: 9px;
-            font-weight: 600;
-            color: var(--muted);
+            font-weight: 500;
+            color: rgba(255,255,255,0.45);
             letter-spacing: 2px;
             text-transform: uppercase;
-            margin-top: 4px;
+            margin-top: 2px;
         }
 
-        nav { padding: 12px 0; flex: 1; }
+        nav { padding: 10px 12px; flex: 1; }
         nav a {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 10px 20px;
-            color: var(--text-secondary);
+            gap: 11px;
+            padding: 9px 12px;
+            color: rgba(255,255,255,0.6);
             text-decoration: none;
-            font-size: 13.5px;
+            font-size: 13px;
             font-weight: 500;
-            border-radius: 0;
+            border-radius: 9px;
             transition: all .15s ease;
-            border-left: 3px solid transparent;
-            margin: 1px 0;
+            margin: 2px 0;
         }
-        nav a svg { flex-shrink: 0; opacity: .65; transition: opacity .15s; }
+        nav a svg { flex-shrink: 0; transition: opacity .15s; }
         nav a:hover {
-            background: var(--neutral);
-            color: var(--primary);
+            background: rgba(255,255,255,0.10);
+            color: white;
         }
-        nav a:hover svg { opacity: 1; }
         nav a.active {
-            background: var(--primary-pale);
-            color: var(--primary);
-            border-left-color: var(--primary);
+            background: rgba(255,255,255,0.15);
+            color: white;
             font-weight: 600;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12);
         }
-        nav a.active svg { opacity: 1; color: var(--primary); }
 
         .sidebar-bottom {
-            border-top: 1px solid var(--border-light);
-            padding: 16px 20px;
+            border-top: 1px solid rgba(255,255,255,0.08);
+            padding: 14px 12px;
         }
         .sidebar-create-btn {
             display: flex;
@@ -162,19 +168,19 @@ $sidebarIcons = [
             gap: 8px;
             width: 100%;
             padding: 10px 16px;
-            background: var(--primary);
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.2);
             color: #fff;
-            border: none;
             border-radius: var(--radius-sm);
             font-family: inherit;
             font-size: 13px;
             font-weight: 600;
             cursor: pointer;
             text-decoration: none;
-            transition: background .15s;
-            margin-bottom: 16px;
+            transition: all .15s;
+            margin-bottom: 14px;
         }
-        .sidebar-create-btn:hover { background: var(--primary-light); }
+        .sidebar-create-btn:hover { background: rgba(255,255,255,0.22); }
 
         .sidebar-user {
             display: flex;
@@ -182,14 +188,12 @@ $sidebarIcons = [
             gap: 10px;
         }
         .sidebar-user-avatar {
-            width: 36px;
-            height: 36px;
+            width: 34px; height: 34px;
             border-radius: 50%;
-            background: var(--primary-pale2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--primary);
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.25);
+            display: flex; align-items: center; justify-content: center;
+            color: white;
             font-weight: 700;
             font-size: 13px;
             flex-shrink: 0;
@@ -198,17 +202,17 @@ $sidebarIcons = [
         .sidebar-user-name {
             font-weight: 600;
             font-size: 13px;
-            color: var(--text);
+            color: white;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
         .sidebar-user-role {
             font-size: 11px;
-            color: var(--muted);
+            color: rgba(255,255,255,0.45);
         }
-        .sidebar-user-role a { color: var(--primary); text-decoration: none; font-weight: 500; }
-        .sidebar-user-role a:hover { text-decoration: underline; }
+        .sidebar-user-role a { color: rgba(255,255,255,0.7); text-decoration: none; font-weight: 500; }
+        .sidebar-user-role a:hover { color: white; }
 
         /* ---- MAIN AREA ---- */
         .main {
@@ -414,18 +418,39 @@ $sidebarIcons = [
 
         /* ---- BADGES ---- */
         .badge {
-            display: inline-block;
-            padding: 4px 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
             border-radius: 999px;
             font-size: 11px;
             font-weight: 600;
-            text-transform: capitalize;
         }
-        .badge.pendiente { background: rgba(245,158,11,.12); color: #b45309; }
-        .badge.en_preparacion { background: rgba(59,130,246,.1); color: #2563eb; }
-        .badge.enviado { background: rgba(139,92,246,.1); color: #7c3aed; }
-        .badge.entregado { background: rgba(34,197,94,.1); color: #16a34a; }
-        .badge.cancelado { background: rgba(239,68,68,.1); color: #dc2626; }
+        .badge::before {
+            content: '';
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .badge.pendiente       { background: rgba(245,158,11,.12); color: #b45309; }
+        .badge.pendiente::before { background: #f59e0b; }
+        .badge.en_preparacion  { background: rgba(249,115,22,.12); color: #c2410c; }
+        .badge.en_preparacion::before { background: #f97316; }
+        .badge.en_proceso      { background: rgba(59,130,246,.12); color: #1d4ed8; }
+        .badge.en_proceso::before { background: #3b82f6; }
+        .badge.enviado         { background: rgba(139,92,246,.12); color: #6d28d9; }
+        .badge.enviado::before { background: #8b5cf6; }
+        .badge.en_camino       { background: rgba(139,92,246,.12); color: #6d28d9; }
+        .badge.en_camino::before { background: #8b5cf6; }
+        .badge.entregado       { background: rgba(34,197,94,.12); color: #15803d; }
+        .badge.entregado::before { background: #22c55e; }
+        .badge.completado      { background: rgba(34,197,94,.12); color: #15803d; }
+        .badge.completado::before { background: #22c55e; }
+        .badge.cancelado       { background: rgba(239,68,68,.12); color: #b91c1c; }
+        .badge.cancelado::before { background: #ef4444; }
+
+        /* Badge label override via data attribute */
+        [data-estado-label]::after { content: attr(data-estado-label); }
 
         /* ---- BUTTONS ---- */
         .btn {
@@ -648,8 +673,12 @@ $sidebarIcons = [
 <div class="layout">
     <aside class="sidebar">
         <div class="sidebar-brand">
-            <div class="sidebar-brand-name">OFIEQUIPO ADMIN</div>
-            <span>Espacio de Trabajo</span>
+            <div class="sidebar-brand-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
+            </div>
+            <div>
+                <div class="sidebar-brand-name">OFIEQUIPO<span>Panel Admin</span></div>
+            </div>
         </div>
         <nav>
             <?php foreach (admin_menu_items() as $item):

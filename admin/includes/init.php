@@ -160,3 +160,20 @@ function admin_active_id(string $script): string
     }
     return 'dashboard';
 }
+
+function admin_estado_badge(string $estado): string
+{
+    $labels = [
+        'pendiente'      => 'Pendiente',
+        'en_preparacion' => 'En preparación',
+        'en_proceso'     => 'En proceso',
+        'enviado'        => 'Enviado',
+        'en_camino'      => 'En camino',
+        'entregado'      => 'Entregado',
+        'completado'     => 'Completado',
+        'cancelado'      => 'Cancelado',
+    ];
+    $label = $labels[$estado] ?? ucfirst(str_replace('_', ' ', $estado));
+    $class = preg_replace('/[^a-z0-9_]/', '', strtolower($estado));
+    return '<span class="badge ' . $class . '">' . htmlspecialchars($label) . '</span>';
+}
