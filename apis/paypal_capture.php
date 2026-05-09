@@ -156,6 +156,9 @@ if (($capture['status'] ?? '') === 'COMPLETED') {
         $iap->execute();
         $adminPedidoId = (int)$conn->insert_id; $iap->close();
 
+        // Vincular pedido con admin_pedido para sincronizar estado
+        $conn->query("UPDATE pedidos SET admin_pedido_id = $adminPedidoId WHERE id = $pedidoId");
+
         // Crear registro de envío pendiente
         $iae = $conn->prepare("INSERT INTO admin_envios (pedido_id, estado) VALUES (?, 'pendiente')");
         if (!$iae) throw new RuntimeException('prepare admin_envios: ' . $conn->error);

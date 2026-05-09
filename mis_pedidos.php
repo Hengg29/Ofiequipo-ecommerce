@@ -18,10 +18,13 @@ $clienteId = $cliente['id'] ?? null;
 $pedidos = [];
 if ($clienteId) {
     $stmtP = $conn->prepare("
-        SELECT p.id, p.fecha_pedido, p.monto_total, p.estado, p.requiere_factura,
-               pg.metodo_pago
+        SELECT p.id, p.fecha_pedido, p.monto_total, p.requiere_factura,
+               pg.metodo_pago,
+               COALESCE(ap.estado, p.estado) AS estado,
+               ap.numero_pedido
         FROM pedidos p
         LEFT JOIN pagos pg ON pg.pedido_id = p.id
+        LEFT JOIN admin_pedidos ap ON ap.id = p.admin_pedido_id
         WHERE p.cliente_id = ?
         ORDER BY p.fecha_pedido DESC
     ");
@@ -65,11 +68,15 @@ function getImageUrl($p) {
 }
 
 $estadoInfo = [
-    'pendiente'  => ['label' => 'Pendiente',   'color' => '#f59e0b', 'bg' => '#fef3c7'],
-    'procesando' => ['label' => 'Procesando',  'color' => '#3b82f6', 'bg' => '#eff6ff'],
-    'enviado'    => ['label' => 'Enviado',     'color' => '#8b5cf6', 'bg' => '#f5f3ff'],
-    'entregado'  => ['label' => 'Entregado',   'color' => '#16a34a', 'bg' => '#dcfce7'],
-    'cancelado'  => ['label' => 'Cancelado',   'color' => '#ef4444', 'bg' => '#fef2f2'],
+    'pendiente'       => ['label' => 'Pendiente',       'color' => '#f59e0b', 'bg' => '#fef3c7'],
+    'en_preparacion'  => ['label' => 'En preparación',  'color' => '#f97316', 'bg' => '#fff7ed'],
+    'en_proceso'      => ['label' => 'En proceso',      'color' => '#3b82f6', 'bg' => '#eff6ff'],
+    'procesando'      => ['label' => 'Procesando',      'color' => '#3b82f6', 'bg' => '#eff6ff'],
+    'enviado'         => ['label' => 'Enviado',          'color' => '#8b5cf6', 'bg' => '#f5f3ff'],
+    'en_camino'       => ['label' => 'En camino',       'color' => '#8b5cf6', 'bg' => '#f5f3ff'],
+    'entregado'       => ['label' => 'Entregado',       'color' => '#16a34a', 'bg' => '#dcfce7'],
+    'completado'      => ['label' => 'Completado',      'color' => '#16a34a', 'bg' => '#dcfce7'],
+    'cancelado'       => ['label' => 'Cancelado',       'color' => '#ef4444', 'bg' => '#fef2f2'],
 ];
 $metodoPago = [
     'paypal'           => 'PayPal',

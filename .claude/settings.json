@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php -r ' *)",
+      "Bash(php -l /Users/hengg/Documents/OfieEquipoV2/mis_pedidos.php)",
+      "Bash(php -l /Users/hengg/Documents/OfieEquipoV2/apis/paypal_capture.php)"
+    ]
+  }
+}
