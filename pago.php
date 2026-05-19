@@ -20,7 +20,8 @@ $cart      = $_SESSION['cart'] ?? [];
 $cartCount = array_sum(array_column($cart, 'cantidad'));
 if (empty($cart)) { header('Location: carrito.php'); exit; }
 
-$paypalClientId = $_ENV['PAYPAL_CLIENT_ID'] ?? '';
+$paypalClientId  = $_ENV['PAYPAL_CLIENT_ID'] ?? '';
+$stripePublicKey = $_ENV['STRIPE_PUBLIC_KEY'] ?? '';
 
 // Obtener precios de la BD para cada item del carrito
 $cartTotal = 0;
@@ -645,138 +646,80 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
                         </div>
                     </div>
 
-                    <!-- ── CREDIT CARD PANEL ── -->
+                    <!-- Panel crédito: solo tarjeta visual -->
                     <div class="card-panel active" id="panel-credit">
-                        <!-- Visual card -->
                         <div class="card-visual-wrap">
-                            <div class="card-visual" id="cardVisual">
-                                <div class="card-face card-front">
-                                    <div class="card-logo-row">
-                                        <div class="card-chip"></div>
-                                        <div id="creditNetworkLogo" class="visa-logo">VISA</div>
-                                    </div>
+                            <div class="card-visual" id="creditCardVisual">
+                                <div class="card-face card-front" style="background:linear-gradient(135deg,#1e3a8a 0%,#2563eb 60%,#3b82f6 100%)">
+                                    <div class="card-logo-row"><div class="card-chip"></div><div class="creditNetworkLogo visa-logo">VISA</div></div>
                                     <div class="card-number-display" id="creditNumberDisplay">•••• •••• •••• ••••</div>
                                     <div class="card-info-row">
-                                        <div>
-                                            <div class="card-label">Titular</div>
-                                            <div class="card-value" id="creditNameDisplay">NOMBRE APELLIDO</div>
-                                        </div>
-                                        <div style="text-align:right">
-                                            <div class="card-label">Vence</div>
-                                            <div class="card-value" id="creditExpDisplay">MM/AA</div>
-                                        </div>
+                                        <div><div class="card-label">Titular</div><div class="card-value" id="creditNameDisplay">NOMBRE APELLIDO</div></div>
+                                        <div style="text-align:right"><div class="card-label">Vence</div><div class="card-value" id="creditExpDisplay">MM/AA</div></div>
                                     </div>
                                 </div>
-                                <div class="card-face card-back">
+                                <div class="card-face card-back" style="background:linear-gradient(135deg,#1e3a8a,#1d4ed8);filter:brightness(.75)">
                                     <div class="card-stripe"></div>
-                                    <div class="card-cvv-row">
-                                        <div class="card-cvv-label">CVV</div>
-                                        <div class="card-cvv-box" id="creditCvvDisplay">•••</div>
-                                    </div>
+                                    <div class="card-cvv-row"><div class="card-cvv-label">CVV</div><div class="card-cvv-box">•••</div></div>
                                 </div>
                             </div>
                         </div>
-
-                        <!-- Form -->
-                        <div class="form-group">
-                            <label>Número de tarjeta</label>
-                            <input type="text" id="creditNumber" placeholder="1234 5678 9012 3456" maxlength="19"
-                                   oninput="formatCardNumber(this,'credit')" onpaste="return false">
-                        </div>
-                        <div class="form-group">
-                            <label>Nombre del titular</label>
-                            <input type="text" id="creditName" placeholder="Como aparece en la tarjeta"
-                                   oninput="updateCardName(this,'credit')" style="text-transform:uppercase">
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group" style="margin-bottom:0">
-                                <label>Fecha de vencimiento</label>
-                                <input type="text" id="creditExp" placeholder="MM/AA" maxlength="5"
-                                       oninput="formatExp(this,'credit')">
-                            </div>
-                            <div class="form-group" style="margin-bottom:0">
-                                <label>CVV</label>
-                                <input type="text" id="creditCvv" placeholder="•••" maxlength="4"
-                                       oninput="updateCvv(this,'credit')"
-                                       onfocus="flipCard('credit',true)"
-                                       onblur="flipCard('credit',false)">
-                            </div>
-                        </div>
-
-                        <button class="btn-pay" onclick="handlePay()">
-                            <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
-                            Pagar ahora
-                        </button>
-                        <p class="pay-secure-note">
-                            <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2z"/></svg>
-                            Pago seguro con encriptación SSL de 256 bits
-                        </p>
                     </div>
 
-                    <!-- ── DEBIT CARD PANEL ── -->
+                    <!-- Panel débito: solo tarjeta visual -->
                     <div class="card-panel" id="panel-debit">
-                        <!-- Visual card (green) -->
                         <div class="card-visual-wrap">
                             <div class="card-visual" id="debitCardVisual">
                                 <div class="card-face card-front" style="background:linear-gradient(135deg,#15803d 0%,#16a34a 60%,#22c55e 100%)">
-                                    <div class="card-logo-row">
-                                        <div class="card-chip"></div>
-                                        <div id="debitNetworkLogo" class="visa-logo">VISA</div>
-                                    </div>
+                                    <div class="card-logo-row"><div class="card-chip"></div><div class="debitNetworkLogo visa-logo">VISA</div></div>
                                     <div class="card-number-display" id="debitNumberDisplay">•••• •••• •••• ••••</div>
                                     <div class="card-info-row">
-                                        <div>
-                                            <div class="card-label">Titular</div>
-                                            <div class="card-value" id="debitNameDisplay">NOMBRE APELLIDO</div>
-                                        </div>
-                                        <div style="text-align:right">
-                                            <div class="card-label">Vence</div>
-                                            <div class="card-value" id="debitExpDisplay">MM/AA</div>
-                                        </div>
+                                        <div><div class="card-label">Titular</div><div class="card-value" id="debitNameDisplay">NOMBRE APELLIDO</div></div>
+                                        <div style="text-align:right"><div class="card-label">Vence</div><div class="card-value" id="debitExpDisplay">MM/AA</div></div>
                                     </div>
                                 </div>
-                                <div class="card-face card-back" style="background:linear-gradient(135deg,#14532d 0%,#15803d 100%)">
+                                <div class="card-face card-back" style="background:linear-gradient(135deg,#14532d,#15803d);filter:brightness(.75)">
                                     <div class="card-stripe"></div>
-                                    <div class="card-cvv-row">
-                                        <div class="card-cvv-label">NIP / CVV</div>
-                                        <div class="card-cvv-box" id="debitCvvDisplay">•••</div>
-                                    </div>
+                                    <div class="card-cvv-row"><div class="card-cvv-label">CVV</div><div class="card-cvv-box">•••</div></div>
                                 </div>
                             </div>
                         </div>
+                    </div>
 
-                        <div class="form-group">
-                            <label>Número de tarjeta</label>
-                            <input type="text" id="debitNumber" placeholder="1234 5678 9012 3456" maxlength="19"
-                                   oninput="formatCardNumber(this,'debit')" onpaste="return false">
+                    <!-- Formulario Stripe compartido (siempre visible, mismo elemento para crédito y débito) -->
+                    <div id="stripe-shared-form" style="margin-top:4px;">
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/b/ba/Stripe_Logo%2C_revised_2016.svg" alt="Stripe" height="20" style="height:20px;">
+                            <span style="font-size:12px;color:#64748b;">Pago seguro procesado por Stripe</span>
                         </div>
                         <div class="form-group">
                             <label>Nombre del titular</label>
-                            <input type="text" id="debitName" placeholder="Como aparece en la tarjeta"
-                                   oninput="updateCardName(this,'debit')" style="text-transform:uppercase">
+                            <input type="text" id="cardHolderName" placeholder="Como aparece en la tarjeta"
+                                oninput="updateCardName(this.value)"
+                                style="text-transform:uppercase;width:100%;padding:11px 13px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:14px;font-family:inherit;outline:none;transition:border-color .2s;">
+                        </div>
+                        <div class="form-group">
+                            <label>Número de tarjeta</label>
+                            <div id="stripe-number" style="padding:12px 13px;border:1.5px solid #e2e8f0;border-radius:9px;background:white;transition:border-color .2s;min-height:44px;"></div>
                         </div>
                         <div class="form-row">
                             <div class="form-group" style="margin-bottom:0">
-                                <label>Fecha de vencimiento</label>
-                                <input type="text" id="debitExp" placeholder="MM/AA" maxlength="5"
-                                       oninput="formatExp(this,'debit')">
+                                <label>Vencimiento</label>
+                                <div id="stripe-expiry" style="padding:12px 13px;border:1.5px solid #e2e8f0;border-radius:9px;background:white;transition:border-color .2s;min-height:44px;"></div>
                             </div>
                             <div class="form-group" style="margin-bottom:0">
-                                <label>NIP</label>
-                                <input type="password" id="debitCvv" placeholder="••••" maxlength="4"
-                                       oninput="updateCvv(this,'debit')"
-                                       onfocus="flipCard('debit',true)"
-                                       onblur="flipCard('debit',false)">
+                                <label>CVV</label>
+                                <div id="stripe-cvc" style="padding:12px 13px;border:1.5px solid #e2e8f0;border-radius:9px;background:white;transition:border-color .2s;min-height:44px;"></div>
                             </div>
                         </div>
-
-                        <button class="btn-pay" onclick="handlePay()">
+                        <div id="stripe-errors" style="color:#dc2626;font-size:12px;margin-top:8px;display:none;"></div>
+                        <button class="btn-pay" id="btn-stripe-pay" onclick="handleStripePay()">
                             <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
-                            Pagar ahora
+                            Pagar $<?= number_format($cartTotal, 2) ?> MXN
                         </button>
                         <p class="pay-secure-note">
                             <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2z"/></svg>
-                            Pago seguro con encriptación SSL de 256 bits
+                            Pago seguro · 256-bit SSL · Nunca almacenamos tus datos de tarjeta
                         </p>
                     </div>
 
@@ -847,15 +790,12 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
     let activeTab = 'credit';
 
     function switchTab(tab) {
-        // Update tabs
         document.querySelectorAll('.method-tab').forEach(t => t.classList.remove('active'));
         document.getElementById('tab-' + tab).classList.add('active');
-
-        // Update panels
         document.querySelectorAll('.card-panel').forEach(p => p.classList.remove('active'));
         document.getElementById('panel-' + tab).classList.add('active');
-
         activeTab = tab;
+        if (tab === 'debit') mountDebitIfNeeded();
     }
 
     // ── Card number formatting ─────────────────────────────────
@@ -988,6 +928,83 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
             }
 
         }).render('#paypal-button-container');
+    }
+    </script>
+
+    <!-- Stripe.js -->
+    <script src="https://js.stripe.com/v3/"></script>
+    <script>
+    const STRIPE_PUBLIC_KEY = <?= json_encode($stripePublicKey) ?>;
+    const stripe   = Stripe(STRIPE_PUBLIC_KEY);
+    const elements = stripe.elements();
+    const cardStyle = {
+        base: { color:'#0f172a', fontFamily:"'Inter',system-ui,sans-serif", fontSize:'14px', '::placeholder':{ color:'#94a3b8' } },
+        invalid: { color:'#dc2626' }
+    };
+    const brandLabels = { visa:'VISA', mastercard:'Mastercard', amex:'AMEX', discover:'Discover', diners:'Diners', jcb:'JCB', unionpay:'UnionPay' };
+
+    // Un solo set de elementos Stripe — compartido entre crédito y débito
+    const numEl = elements.create('cardNumber', { style: cardStyle });
+    const expEl = elements.create('cardExpiry', { style: cardStyle });
+    const cvcEl = elements.create('cardCvc',    { style: cardStyle, placeholder: 'CVV' });
+    numEl.mount('#stripe-number');
+    expEl.mount('#stripe-expiry');
+    cvcEl.mount('#stripe-cvc');
+
+    [['stripe-number',numEl],['stripe-expiry',expEl],['stripe-cvc',cvcEl]].forEach(([id,el])=>{
+        el.on('focus',()=>document.getElementById(id).style.borderColor='#2563eb');
+        el.on('blur', ()=>document.getElementById(id).style.borderColor='#e2e8f0');
+    });
+    numEl.on('change', e => {
+        const raw = (e.value||'').replace(/\s/g,'').padEnd(16,'•');
+        const num = raw.match(/.{1,4}/g).join(' ');
+        ['credit','debit'].forEach(t=>{
+            const d=document.getElementById(t+'NumberDisplay'); if(d) d.textContent=num;
+            const l=document.querySelector('.'+t+'NetworkLogo');
+            if(l) l.textContent=brandLabels[e.brand]||(e.brand&&e.brand!=='unknown'?e.brand.toUpperCase():'VISA');
+        });
+        const err=document.getElementById('stripe-errors');
+        if(e.error){err.textContent=e.error.message;err.style.display='block';}
+        else err.style.display='none';
+    });
+    expEl.on('change', e=>{
+        ['credit','debit'].forEach(t=>{const d=document.getElementById(t+'ExpDisplay');if(d)d.textContent=e.value||'MM/AA';});
+    });
+    cvcEl.on('focus', ()=>{const v=document.getElementById(activeTab+'CardVisual');if(v)v.classList.add('flipped');});
+    cvcEl.on('blur',  ()=>{const v=document.getElementById(activeTab+'CardVisual');if(v)v.classList.remove('flipped');});
+
+    function updateCardName(val){
+        ['credit','debit'].forEach(t=>{const d=document.getElementById(t+'NameDisplay');if(d)d.textContent=val.toUpperCase()||'NOMBRE APELLIDO';});
+    }
+    function mountDebitIfNeeded(){}
+
+    async function handleStripePay() {
+        const btn    = document.getElementById('btn-stripe-pay');
+        const nameEl = document.getElementById('cardHolderName');
+        const errEl  = document.getElementById('stripe-errors');
+        const holderName = nameEl.value.trim();
+        if (!holderName) { errEl.textContent='Ingresa el nombre del titular.'; errEl.style.display='block'; nameEl.focus(); return; }
+        btn.disabled = true;
+        btn.innerHTML = '<span style="display:inline-flex;gap:8px;align-items:center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>Procesando...</span>';
+        try {
+            const createRes  = await fetch('apis/stripe_create.php', { method: 'POST' });
+            const createData = await createRes.json();
+            if (createData.error) throw new Error(createData.error);
+            const { error, paymentIntent } = await stripe.confirmCardPayment(createData.client_secret, {
+                payment_method: { card: numEl, billing_details: { name: holderName } }
+            });
+            if (error) throw new Error(error.message);
+            const body    = new URLSearchParams({ payment_intent_id: paymentIntent.id });
+            const capRes  = await fetch('apis/stripe_capture.php', { method: 'POST', body });
+            const capData = await capRes.json();
+            if (capData.error) throw new Error(capData.error);
+            window.location.href = capData.redirect;
+        } catch (err) {
+            errEl.textContent = err.message || 'Error al procesar el pago. Intenta de nuevo.';
+            errEl.style.display = 'block';
+            btn.disabled = false;
+            btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2z"/></svg>Pagar ahora`;
+        }
     }
     </script>
 </body>

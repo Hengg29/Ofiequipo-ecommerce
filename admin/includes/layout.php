@@ -211,8 +211,29 @@ $sidebarIcons = [
             font-size: 11px;
             color: rgba(255,255,255,0.45);
         }
-        .sidebar-user-role a { color: rgba(255,255,255,0.7); text-decoration: none; font-weight: 500; }
-        .sidebar-user-role a:hover { color: white; }
+        .sidebar-logout-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            padding: 9px 12px;
+            margin-top: 10px;
+            background: rgba(239,68,68,0.15);
+            border: 1px solid rgba(239,68,68,0.25);
+            color: #fca5a5;
+            border-radius: 9px;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all .15s;
+        }
+        .sidebar-logout-btn:hover {
+            background: rgba(239,68,68,0.28);
+            color: white;
+            border-color: rgba(239,68,68,0.45);
+        }
 
         /* ---- MAIN AREA ---- */
         .main {
@@ -704,11 +725,13 @@ $sidebarIcons = [
                 </div>
                 <div class="sidebar-user-info">
                     <div class="sidebar-user-name"><?= admin_h($_SESSION['admin_nombre'] ?? 'Admin') ?></div>
-                    <div class="sidebar-user-role">
-                        <?= admin_h($_SESSION['admin_rol_nombre'] ?? '') ?> · <a href="logout.php">Salir</a>
-                    </div>
+                    <div class="sidebar-user-role"><?= admin_h($_SESSION['admin_rol_nombre'] ?? '') ?></div>
                 </div>
             </div>
+            <a href="logout.php" class="sidebar-logout-btn">
+                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                Cerrar sesión
+            </a>
         </div>
     </aside>
     <div class="main">

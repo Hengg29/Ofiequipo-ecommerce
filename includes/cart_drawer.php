@@ -201,7 +201,12 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCartDra
 function loadCartDrawer() {
     fetch('apis/cart.php?action=get')
         .then(r => r.json())
-        .then(data => renderCartDrawer(data));
+        .then(data => {
+            if (data.success) {
+                syncBadges(data.count);
+                renderCartDrawer(data);
+            }
+        });
 }
 
 function renderCartDrawer(data) {

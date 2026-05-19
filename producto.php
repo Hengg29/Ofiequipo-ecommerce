@@ -1,6 +1,22 @@
 <?php
 session_start();
+session_write_close(); // Liberar lock de sesión antes de queries pesadas
 require_once __DIR__ . '/apis/db.php';
+
+// Pre-cargar categorías y conteos para el navbar (evita N+1)
+$_allCatsRaw = $conn->query("SELECT id, nombre, parent_id FROM categoria ORDER BY nombre")->fetch_all(MYSQLI_ASSOC);
+$_catsByParent = [];
+foreach ($_allCatsRaw as $_c) $_catsByParent[(int)$_c['parent_id']][] = $_c;
+$_countRows = $conn->query("SELECT categoria_id, COUNT(*) AS cnt FROM producto GROUP BY categoria_id")->fetch_all(MYSQLI_ASSOC);
+$_prodCountByCat = array_column($_countRows, 'cnt', 'categoria_id');
+if (!function_exists('prodCountInCat')) {
+    function prodCountInCat(int $catId, array $catsByParent, array $countByCat): int {
+        $cnt = (int)($countByCat[$catId] ?? 0);
+        foreach ($catsByParent[$catId] ?? [] as $sub)
+            $cnt += prodCountInCat((int)$sub['id'], $catsByParent, $countByCat);
+        return $cnt;
+    }
+}
 
 function getImageUrl($imagePath) {
     if (empty($imagePath)) return 'https://via.placeholder.com/800x600?text=Sin+imagen';
@@ -586,38 +602,14 @@ $cartCount = array_sum(array_column($_SESSION['cart'] ?? [], 'cantidad'));
                             </a>
                             <?php
                             $mainCategories = ['Sillería','Almacenaje','Línea Italia','Escritorios','Metálico','Líneas'];
-                            $mainCatsData   = [];
-                            foreach ($mainCategories as $mainCatName) {
-                                $mst = $conn->prepare("SELECT id, nombre FROM categoria WHERE nombre = ? AND parent_id IS NULL");
-                                $mst->bind_param("s", $mainCatName);
-                                $mst->execute();
-                                $row = $mst->get_result()->fetch_assoc();
-                                $mst->close();
-                                if ($row) $mainCatsData[] = $row;
+                            $mainCatsData = [];
+                            foreach ($_allCatsRaw as $_c) {
+                                if ($_c['parent_id'] === null && in_array($_c['nombre'], $mainCategories, true))
+                                    $mainCatsData[] = $_c;
                             }
-                            if (empty($mainCatsData)) {
-                                $mainCatsData = [
-                                    ['id'=>1,'nombre'=>'Sillería'],['id'=>9,'nombre'=>'Almacenaje'],
-                                    ['id'=>13,'nombre'=>'Línea Italia'],['id'=>19,'nombre'=>'Escritorios'],
-                                    ['id'=>28,'nombre'=>'Metálico'],['id'=>39,'nombre'=>'Líneas']
-                                ];
-                            }
+                            usort($mainCatsData, fn($a,$b) => array_search($a['nombre'],$mainCategories) <=> array_search($b['nombre'],$mainCategories));
                             foreach ($mainCatsData as $mainCat):
-                                $sst = $conn->prepare("SELECT id, nombre FROM categoria WHERE parent_id = ? ORDER BY nombre");
-                                $sst->bind_param("i", $mainCat['id']);
-                                $sst->execute();
-                                $subCats = $sst->get_result()->fetch_all(MYSQLI_ASSOC);
-                                $sst->close();
-                                if (empty($subCats)) {
-                                    switch ($mainCat['id']) {
-                                        case 1:  $subCats=[['id'=>2,'nombre'=>'Visita'],['id'=>3,'nombre'=>'Operativa'],['id'=>4,'nombre'=>'Ejecutiva'],['id'=>5,'nombre'=>'Sofás'],['id'=>6,'nombre'=>'Visitantes'],['id'=>7,'nombre'=>'Bancas de espera'],['id'=>8,'nombre'=>'Escolar']]; break;
-                                        case 9:  $subCats=[['id'=>10,'nombre'=>'Archiveros'],['id'=>11,'nombre'=>'Gabinetes'],['id'=>12,'nombre'=>'Credenzas']]; break;
-                                        case 13: $subCats=[['id'=>14,'nombre'=>'Anzio'],['id'=>15,'nombre'=>'iwork & privatt'],['id'=>16,'nombre'=>'Italia Solución general']]; break;
-                                        case 19: $subCats=[['id'=>23,'nombre'=>'Básicos'],['id'=>24,'nombre'=>'Operativos en L'],['id'=>25,'nombre'=>'Semi-Ejecutivo'],['id'=>26,'nombre'=>'Ejecutivos']]; break;
-                                        case 28: $subCats=[['id'=>29,'nombre'=>'Archiveros'],['id'=>30,'nombre'=>'Anaqueles'],['id'=>31,'nombre'=>'Escritorios'],['id'=>32,'nombre'=>'Gabinetes'],['id'=>33,'nombre'=>'Góndolas'],['id'=>34,'nombre'=>'Lockers'],['id'=>35,'nombre'=>'Restauranteras'],['id'=>36,'nombre'=>'Mesas'],['id'=>37,'nombre'=>'Escolar'],['id'=>38,'nombre'=>'Línea Económica']]; break;
-                                        case 39: $subCats=[['id'=>40,'nombre'=>'Euro'],['id'=>41,'nombre'=>'Delta'],['id'=>42,'nombre'=>'Tempo'],['id'=>43,'nombre'=>'Línea Alva'],['id'=>44,'nombre'=>'Línea Beta'],['id'=>45,'nombre'=>'Línea Ceres'],['id'=>46,'nombre'=>'Línea Fiore'],['id'=>47,'nombre'=>'Línea Worvik'],['id'=>48,'nombre'=>'Línea Yenko']]; break;
-                                    }
-                                }
+                                $subCats = $_catsByParent[(int)$mainCat['id']] ?? [];
                                 if (!empty($subCats)):
                             ?>
                                     <div class="navbar-category-group">
@@ -629,11 +621,7 @@ $cartCount = array_sum(array_column($_SESSION['cart'] ?? [], 'cantidad'));
                                         </div>
                                         <div class="navbar-subcategory-menu">
                                             <?php foreach ($subCats as $subCat):
-                                                $cst = $conn->prepare("SELECT COUNT(*) AS cnt FROM producto WHERE categoria_id = ?");
-                                                $cst->bind_param("i", $subCat['id']);
-                                                $cst->execute();
-                                                $catCount = $cst->get_result()->fetch_assoc()['cnt'] ?? 0;
-                                                $cst->close();
+                                                $catCount = $_prodCountByCat[(int)$subCat['id']] ?? 0;
                                             ?>
                                                 <a href="catalogo.php?categoria=<?= (int)$subCat['id'] ?>" class="navbar-subcategory-item">
                                                     <?= htmlspecialchars($subCat['nombre']) ?>
@@ -646,25 +634,19 @@ $cartCount = array_sum(array_column($_SESSION['cart'] ?? [], 'cantidad'));
                             <?php
                             $otherCategories = ['Libreros','Mesas','Mesas de Juntas','Islas de Trabajo','Recepción'];
                             foreach ($otherCategories as $otherCatName):
-                                $ost = $conn->prepare("SELECT id FROM categoria WHERE nombre = ? AND parent_id IS NULL");
-                                $ost->bind_param("s", $otherCatName);
-                                $ost->execute();
-                                $orow = $ost->get_result()->fetch_assoc();
-                                $ost->close();
-                                if ($orow):
-                                    $oCatId = $orow['id'];
-                                    $oct = $conn->prepare("SELECT COUNT(*) AS cnt FROM producto WHERE categoria_id = ?");
-                                    $oct->bind_param("i", $oCatId);
-                                    $oct->execute();
-                                    $catCount = $oct->get_result()->fetch_assoc()['cnt'] ?? 0;
-                                    $oct->close();
-                                    if ($catCount > 0):
+                                $otherCat = null;
+                                foreach ($_allCatsRaw as $_c) {
+                                    if ($_c['parent_id'] === null && $_c['nombre'] === $otherCatName) { $otherCat = $_c; break; }
+                                }
+                                if (!$otherCat) continue;
+                                $catCount = $_prodCountByCat[(int)$otherCat['id']] ?? 0;
+                                if ($catCount <= 0) continue;
                             ?>
-                                        <a href="catalogo.php?categoria=<?= (int)$oCatId ?>" class="navbar-category-item">
-                                            <?= htmlspecialchars($otherCatName) ?>
-                                            <span class="navbar-category-count"><?= $catCount ?></span>
-                                        </a>
-                            <?php   endif; endif; endforeach; ?>
+                                <a href="catalogo.php?categoria=<?= (int)$otherCat['id'] ?>" class="navbar-category-item">
+                                    <?= htmlspecialchars($otherCatName) ?>
+                                    <span class="navbar-category-count"><?= $catCount ?></span>
+                                </a>
+                            <?php endforeach; ?>
                         </div>
                     </div>
                     <a href="catalogo.php" class="nav-link">Catálogo</a>
@@ -903,8 +885,7 @@ $cartCount = array_sum(array_column($_SESSION['cart'] ?? [], 'cantidad'));
         toast.classList.add('show');
         setTimeout(() => toast.classList.remove('show'), 2800);
 
-        // Open drawer after brief delay, passing data to avoid a second request
-        setTimeout(() => openCartDrawer(data), 350);
+        // No abrir drawer automáticamente — el toast es suficiente feedback
 
         // Reset button after drawer is open
         setTimeout(() => {

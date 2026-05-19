@@ -8,7 +8,7 @@ if (!isset($_SESSION['cart'])) {
 
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 
-$ACCIONES_VALIDAS = ['add', 'remove', 'update', 'clear'];
+$ACCIONES_VALIDAS = ['add', 'remove', 'update', 'clear', 'get'];
 if ($action !== '' && !in_array($action, $ACCIONES_VALIDAS, true)) {
     http_response_code(400);
     echo json_encode(['success' => false, 'error' => 'Acción no válida.']);

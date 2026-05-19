@@ -238,6 +238,7 @@ if (($capture['status'] ?? '') === 'COMPLETED') {
         'payer_name'  => ($capture['payer']['name']['given_name'] ?? '') . ' ' . ($capture['payer']['name']['surname'] ?? ''),
         'monto'       => number_format($monto, 2),
         'moneda'      => $pmt['amount']['currency_code'] ?? 'MXN',
+        'metodo'      => 'paypal',
         'status'      => 'COMPLETED',
     ];
     $_SESSION['cart'] = [];

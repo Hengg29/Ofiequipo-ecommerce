@@ -1,5 +1,6 @@
 <?php
 session_start();
+session_write_close(); // Liberar lock antes de queries
 require_once "apis/db.php";
 
 // Función helper para normalizar y obtener URLs de imágenes
@@ -53,6 +54,24 @@ function getImageUrl($imagePath)
 
 $categoria_id = isset($_GET['categoria']) ? (int) $_GET['categoria'] : 0;
 $categoria_parent_id = isset($_GET['categoria_parent']) ? (int) $_GET['categoria_parent'] : 0;
+
+// Pre-cargar TODAS las categorías y conteos en 2 queries (evita N+1 en el navbar)
+$_allCatsRaw = $conn->query("SELECT id, nombre, parent_id FROM categoria ORDER BY nombre")->fetch_all(MYSQLI_ASSOC);
+$_catsById   = array_column($_allCatsRaw, null, 'id');
+$_catsByParent = [];
+foreach ($_allCatsRaw as $_c) {
+    $_catsByParent[(int)$_c['parent_id']][] = $_c;
+}
+$_countRows = $conn->query("SELECT categoria_id, COUNT(*) AS cnt FROM producto GROUP BY categoria_id")->fetch_all(MYSQLI_ASSOC);
+$_prodCountByCat = array_column($_countRows, 'cnt', 'categoria_id');
+
+// Función helper para contar productos incluyendo subcategorías
+function prodCountInCat(int $catId, array $catsByParent, array $countByCat): int {
+    $cnt = (int)($countByCat[$catId] ?? 0);
+    foreach ($catsByParent[$catId] ?? [] as $sub)
+        $cnt += prodCountInCat((int)$sub['id'], $catsByParent, $countByCat);
+    return $cnt;
+}
 
 // Obtener categorías para la navegación / footer
 $cats = [];
@@ -1888,177 +1907,59 @@ function pageUrl($p)
                             </a>
 
                             <?php
-                            // Obtener categorías principales específicas con sus subcategorías
+                            // Usar datos pre-cargados — sin queries aquí
                             $mainCategories = ['Sillería', 'Almacenaje', 'Línea Italia', 'Escritorios', 'Metálico', 'Líneas'];
                             $mainCatsData = [];
-
-                            foreach ($mainCategories as $mainCatName) {
-                                // Buscar por nombre exacto primero
-                                $stmt = $conn->prepare("SELECT id, nombre FROM categoria WHERE nombre = ? AND parent_id IS NULL");
-                                $stmt->bind_param("s", $mainCatName);
-                                $stmt->execute();
-                                $result = $stmt->get_result();
-                                $row = $result->fetch_assoc();
-                                $stmt->close();
-
-                                if ($row) {
-                                    $mainCatsData[] = $row;
-                                }
+                            foreach ($_allCatsRaw as $_c) {
+                                if ($_c['parent_id'] === null && in_array($_c['nombre'], $mainCategories, true))
+                                    $mainCatsData[] = $_c;
                             }
-
-                            // Si no se encontraron las categorías, crear datos de respaldo
-                            if (empty($mainCatsData)) {
-                                $mainCatsData = [
-                                    ['id' => 1, 'nombre' => 'Sillería'],
-                                    ['id' => 9, 'nombre' => 'Almacenaje'],
-                                    ['id' => 13, 'nombre' => 'Línea Italia'],
-                                    ['id' => 19, 'nombre' => 'Escritorios'],
-                                    ['id' => 28, 'nombre' => 'Metálico'],
-                                    ['id' => 39, 'nombre' => 'Líneas']
-                                ];
-                            }
+                            usort($mainCatsData, fn($a,$b) => array_search($a['nombre'], $mainCategories) <=> array_search($b['nombre'], $mainCategories));
 
                             foreach ($mainCatsData as $mainCat):
-                                // Obtener subcategorías
-                                $stmt = $conn->prepare("SELECT id, nombre FROM categoria WHERE parent_id = ? ORDER BY nombre");
-                                $stmt->bind_param("i", $mainCat['id']);
-                                $stmt->execute();
-                                $subCats = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-                                $stmt->close();
-
-                                // Si no hay subcategorías en la BD, usar las definidas en SQL_PRO.sql
-                                if (empty($subCats)) {
-                                    switch ($mainCat['id']) {
-                                        case 1: // Sillería
-                                            $subCats = [
-                                                ['id' => 2, 'nombre' => 'Visita'],
-                                                ['id' => 3, 'nombre' => 'Operativa'],
-                                                ['id' => 4, 'nombre' => 'Ejecutiva'],
-                                                ['id' => 5, 'nombre' => 'Sofás'],
-                                                ['id' => 6, 'nombre' => 'Visitantes'],
-                                                ['id' => 7, 'nombre' => 'Bancas de espera'],
-                                                ['id' => 8, 'nombre' => 'Escolar']
-                                            ];
-                                            break;
-                                        case 8: // Almacenaje
-                                            $subCats = [
-                                                ['id' => 9, 'nombre' => 'Archiveros'],
-                                                ['id' => 10, 'nombre' => 'Gabinetes'],
-                                                ['id' => 11, 'nombre' => 'Credenzas']
-                                            ];
-                                            break;
-                                        case 13: // Línea Italia
-                                            $subCats = [
-                                                ['id' => 14, 'nombre' => 'Anzio'],
-                                                ['id' => 15, 'nombre' => 'iwork & privatt'],
-                                                ['id' => 16, 'nombre' => 'Italia Solución general']
-                                            ];
-                                            break;
-                                        case 19: // Escritorios
-                                            $subCats = [
-                                                ['id' => 23, 'nombre' => 'Básicos'],
-                                                ['id' => 24, 'nombre' => 'Operativos en L'],
-                                                ['id' => 25, 'nombre' => 'Semi-Ejecutivo'],
-                                                ['id' => 26, 'nombre' => 'Ejecutivos']
-                                            ];
-                                            break;
-                                        case 28: // Metálico
-                                            $subCats = [
-                                                ['id' => 29, 'nombre' => 'Archiveros'],
-                                                ['id' => 30, 'nombre' => 'Anaqueles'],
-                                                ['id' => 31, 'nombre' => 'Escritorios'],
-                                                ['id' => 32, 'nombre' => 'Gabinetes'],
-                                                ['id' => 33, 'nombre' => 'Góndolas'],
-                                                ['id' => 34, 'nombre' => 'Lockers'],
-                                                ['id' => 35, 'nombre' => 'Restauranteras'],
-                                                ['id' => 36, 'nombre' => 'Mesas'],
-                                                ['id' => 37, 'nombre' => 'Escolar'],
-                                                ['id' => 38, 'nombre' => 'Línea Económica']
-                                            ];
-                                            break;
-                                        case 39: // Líneas
-                                            $subCats = [
-                                                ['id' => 40, 'nombre' => 'Euro'],
-                                                ['id' => 41, 'nombre' => 'Delta'],
-                                                ['id' => 42, 'nombre' => 'Tempo'],
-                                                ['id' => 43, 'nombre' => 'Línea Alva'],
-                                                ['id' => 44, 'nombre' => 'Línea Beta'],
-                                                ['id' => 45, 'nombre' => 'Línea Ceres'],
-                                                ['id' => 46, 'nombre' => 'Línea Fiore'],
-                                                ['id' => 47, 'nombre' => 'Línea Worvik'],
-                                                ['id' => 48, 'nombre' => 'Línea Yenko']
-                                            ];
-                                            break;
-                                    }
-                                }
-
-                                // Solo mostrar el grupo si tiene subcategorías
-                                if (!empty($subCats)):
-                                    ?>
+                                $subCats = $_catsByParent[(int)$mainCat['id']] ?? [];
+                            ?>
+                                <?php if (!empty($subCats)): ?>
                                     <div class="navbar-category-group">
                                         <div class="navbar-category-main">
                                             <?= htmlspecialchars($mainCat['nombre']) ?>
-                                            <svg class="icon submenu-icon" viewBox="0 0 24 24" fill="none"
-                                                xmlns="http://www.w3.org/2000/svg">
-                                                <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2"
-                                                    stroke-linecap="round" stroke-linejoin="round" />
+                                            <svg class="icon submenu-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                             </svg>
                                         </div>
                                         <div class="navbar-subcategory-menu">
                                             <?php foreach ($subCats as $subCat):
-                                                // Contar productos por subcategoría
-                                                $countStmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM producto WHERE categoria_id = ?");
-                                                $countStmt->bind_param("i", $subCat['id']);
-                                                $countStmt->execute();
-                                                $catCount = $countStmt->get_result()->fetch_assoc()['cnt'] ?? 0;
-                                                $countStmt->close();
-                                                ?>
-                                                <a href="catalogo.php?categoria=<?= (int) $subCat['id'] ?><?= !empty($search_query) ? '&search=' . urlencode($search_query) : '' ?>"
-                                                    class="navbar-subcategory-item <?= $categoria_id === (int) $subCat['id'] ? 'active' : '' ?>">
+                                                $catCount = $_prodCountByCat[(int)$subCat['id']] ?? 0;
+                                            ?>
+                                                <a href="catalogo.php?categoria=<?= (int)$subCat['id'] ?><?= !empty($search_query) ? '&search=' . urlencode($search_query) : '' ?>"
+                                                    class="navbar-subcategory-item <?= $categoria_id === (int)$subCat['id'] ? 'active' : '' ?>">
                                                     <?= htmlspecialchars($subCat['nombre']) ?>
                                                     <span class="navbar-category-count"><?= $catCount ?></span>
                                                 </a>
                                             <?php endforeach ?>
                                         </div>
                                     </div>
-                                <?php
-                                endif; // Cerrar el if de subcategorías
-                            endforeach
-                            ?>
+                                <?php endif;
+                            endforeach ?>
 
                             <!-- Otras categorías (sin subcategorías) -->
                             <?php
-                            // Obtener categorías que no son principales ni subcategorías
                             $otherCategories = ['Libreros', 'Mesas', 'Mesas de Juntas', 'Islas de Trabajo', 'Recepción'];
-
                             foreach ($otherCategories as $otherCatName):
-                                $stmt = $conn->prepare("SELECT id FROM categoria WHERE nombre = ? AND parent_id IS NULL");
-                                $stmt->bind_param("s", $otherCatName);
-                                $stmt->execute();
-                                $result = $stmt->get_result();
-                                if ($row = $result->fetch_assoc()):
-                                    $otherCatId = $row['id'];
-                                    $stmt->close();
-
-                                    // Contar productos por categoría
-                                    $countStmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM producto WHERE categoria_id = ?");
-                                    $countStmt->bind_param("i", $otherCatId);
-                                    $countStmt->execute();
-                                    $catCount = $countStmt->get_result()->fetch_assoc()['cnt'] ?? 0;
-                                    $countStmt->close();
-
-                                    if ($catCount > 0): // Solo mostrar si tiene productos
-                                        ?>
-                                        <a href="catalogo.php?categoria=<?= (int) $otherCatId ?><?= !empty($search_query) ? '&search=' . urlencode($search_query) : '' ?>"
-                                            class="navbar-category-item <?= $categoria_id === (int) $otherCatId ? 'active' : '' ?>">
-                                            <?= htmlspecialchars($otherCatName) ?>
-                                            <span class="navbar-category-count"><?= $catCount ?></span>
-                                        </a>
-                                    <?php
-                                    endif;
-                                endif;
-                            endforeach
+                                $otherCat = null;
+                                foreach ($_allCatsRaw as $_c) {
+                                    if ($_c['parent_id'] === null && $_c['nombre'] === $otherCatName) { $otherCat = $_c; break; }
+                                }
+                                if (!$otherCat) continue;
+                                $catCount = $_prodCountByCat[(int)$otherCat['id']] ?? 0;
+                                if ($catCount <= 0) continue;
                             ?>
+                                <a href="catalogo.php?categoria=<?= (int)$otherCat['id'] ?><?= !empty($search_query) ? '&search=' . urlencode($search_query) : '' ?>"
+                                    class="navbar-category-item <?= $categoria_id === (int)$otherCat['id'] ? 'active' : '' ?>">
+                                    <?= htmlspecialchars($otherCatName) ?>
+                                    <span class="navbar-category-count"><?= $catCount ?></span>
+                                </a>
+                            <?php endforeach ?>
                         </div>
                     </div>
                     <a href="catalogo.php" class="nav-link">Catálogo</a>

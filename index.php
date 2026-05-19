@@ -1,5 +1,6 @@
 <?php
 session_start();
+session_write_close(); // Liberar lock antes de queries
 require_once __DIR__ . '/apis/db.php';
 
 // Función helper para normalizar y obtener URLs de imágenes

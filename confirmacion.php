@@ -245,7 +245,15 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
                 <?php endif; ?>
                 <?php if (!empty($confirmacion['payer_email'])): ?>
                 <div class="confirm-info-row">
-                    <span>Cuenta PayPal</span>
+                    <?php
+                    $metodo = strtolower($confirmacion['metodo'] ?? 'paypal');
+                    $labelMetodo = match($metodo) {
+                        'stripe' => 'Correo',
+                        'paypal' => 'Cuenta PayPal',
+                        default  => 'Correo',
+                    };
+                    ?>
+                    <span><?= $labelMetodo ?></span>
                     <span><?= htmlspecialchars($confirmacion['payer_email']) ?></span>
                 </div>
                 <?php endif; ?>

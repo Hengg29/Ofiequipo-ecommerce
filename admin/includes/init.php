@@ -92,6 +92,22 @@ function admin_require_login(): void
     if (empty($_SESSION['admin_user_id'])) {
         admin_redirect('login.php');
     }
+
+    // Verificar que el usuario sigue activo en la BD
+    global $conn;
+    $uid  = (int) $_SESSION['admin_user_id'];
+    $stmt = $conn->prepare("SELECT id FROM admin_usuarios WHERE id = ? AND activo = 1 LIMIT 1");
+    if ($stmt) {
+        $stmt->bind_param('i', $uid);
+        $stmt->execute();
+        $valid = (bool) $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        if (!$valid) {
+            $_SESSION = [];
+            session_destroy();
+            admin_redirect('login.php');
+        }
+    }
 }
 
 /**
