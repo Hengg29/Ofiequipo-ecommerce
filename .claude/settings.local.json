@@ -25,7 +25,10 @@
       "Bash(git pull *)",
       "Bash(git stash *)",
       "Bash(git rm *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Read(//Users/zurisabdainunezvelazquez/Downloads/Proyectos/Precios/**)",
+      "Bash(python3 -c ' *)",
+      "Bash(pip3 install *)"
     ]
   }
 }

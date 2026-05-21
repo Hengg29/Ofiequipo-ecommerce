@@ -11,7 +11,16 @@
       "Bash(php -l admin/ventas.php)",
       "Bash(php -l admin/envios.php)",
       "Bash(php -l admin/venta.php)",
-      "Bash(php -l admin/cliente.php)"
+      "Bash(php -l admin/cliente.php)",
+      "Bash(python3 -c ' *)",
+      "Bash(grep -A 5 \"-- ARCHIVEROS\\\\|-- CREDENZAS\\\\|-- GABINETES\\\\|-- ESCRITORIOS\\\\|-- SILLA\\\\|-- MESA\\\\|-- LIBRERO\\\\|-- ISLAS\\\\|-- RECEP\\\\|categoria_id\" /Users/zurisabdainunezvelazquez/Downloads/Proyectos/Ofiequipo_com/Ofiequipo-ecommerce/db/inserts_precios.sql)",
+      "Bash(mkdir -p /Users/zurisabdainunezvelazquez/Downloads/Proyectos/Ofiequipo_com/Ofiequipo-ecommerce/Uploads/productos/zamofi)",
+      "Bash(mkdir -p /Users/zurisabdainunezvelazquez/Downloads/Proyectos/Ofiequipo_com/Ofiequipo-ecommerce/Uploads/productos/elitte)",
+      "Bash(mkdir -p /Users/zurisabdainunezvelazquez/Downloads/Proyectos/Ofiequipo_com/Ofiequipo-ecommerce/Uploads/productos/italia)",
+      "Bash(python3 generar_sql.py)"
+    ],
+    "additionalDirectories": [
+      "/Users/zurisabdainunezvelazquez/Downloads/Proyectos/Precios"
     ]
   }
 }
