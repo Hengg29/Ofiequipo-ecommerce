@@ -6,6 +6,7 @@ security_headers();
 header('Permissions-Policy: geolocation=(self)'); // sobrescribe el bloqueo: solo este origen
 require_once __DIR__ . '/apis/db.php';
 require_once __DIR__ . '/includes/require_login.php';
+require_once __DIR__ . '/includes/image_helper.php';
 
 function getImageUrl($p) {
     if (empty($p)) return 'https://via.placeholder.com/800x600?text=Sin+imagen';

@@ -155,19 +155,20 @@ $possiblePaths = [];
 // Preservar espacios en nombres de archivos y carpetas, solo trim al inicio/final de la ruta completa
 $imagePath = trim($imagePath);
 
-// Si ya tiene prefijo Uploads/uploads, intentar tal cual
-if (stripos($imagePath, 'uploads/') === 0) {
-    // Intentar con el caso exacto primero
+// src/img/ — carpeta de imágenes propias del catálogo
+if (stripos($imagePath, 'src/img/') === 0) {
     $possiblePaths[] = $baseDir . '/' . $imagePath;
-    // Intentar con diferentes casos
+    $possiblePaths[] = $baseDir . '/src/img/' . substr($imagePath, strlen('src/img/'));
+} elseif (stripos($imagePath, 'uploads/') === 0) {
+    // Si ya tiene prefijo Uploads/uploads, intentar tal cual
+    $possiblePaths[] = $baseDir . '/' . $imagePath;
     $parts = explode('/', $imagePath, 2);
     if (isset($parts[1])) {
-        // Preservar espacios en nombres de archivos y carpetas
         $possiblePaths[] = $baseDir . '/Uploads/' . $parts[1];
         $possiblePaths[] = $baseDir . '/uploads/' . $parts[1];
     }
 } else {
-    // Agregar prefijo Uploads con diferentes casos
+    // Sin prefijo conocido → asumir Uploads/
     $possiblePaths[] = $baseDir . '/Uploads/' . $imagePath;
     $possiblePaths[] = $baseDir . '/uploads/' . $imagePath;
 }

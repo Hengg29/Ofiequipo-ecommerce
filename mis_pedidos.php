@@ -5,6 +5,7 @@ session_start();
 security_headers();
 require_once __DIR__ . '/apis/db.php';
 require_once __DIR__ . '/includes/require_login.php';
+require_once __DIR__ . '/includes/image_helper.php';
 
 
 $userId = (int)$_SESSION['user_id'];

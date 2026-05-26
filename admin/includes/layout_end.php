@@ -129,6 +129,30 @@
     });
 })();
 </script>
+
+<?php if (!empty($_GET['saved'])): ?>
+<div id="adminToast" style="
+    position:fixed;top:18px;right:18px;z-index:9999;
+    background:#1D3D8E;color:#fff;
+    padding:11px 18px;border-radius:10px;
+    font-size:13px;font-weight:600;
+    box-shadow:0 4px 16px rgba(0,0,0,.18);
+    display:flex;align-items:center;gap:8px;
+    opacity:0;transform:translateY(-8px);
+    transition:opacity .25s,transform .25s;
+    pointer-events:none;">
+    <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+    <?= !empty($_GET['new']) ? 'Producto creado' : 'Cambios guardados' ?>
+</div>
+<script>
+(function(){
+    const t = document.getElementById('adminToast');
+    if (!t) return;
+    requestAnimationFrame(() => { t.style.opacity='1'; t.style.transform='translateY(0)'; });
+    setTimeout(() => { t.style.opacity='0'; t.style.transform='translateY(-8px)'; }, 3000);
+})();
+</script>
+<?php endif; ?>
 </body>
 
 </html>

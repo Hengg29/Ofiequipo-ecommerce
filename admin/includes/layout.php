@@ -6,8 +6,8 @@ declare(strict_types=1);
 
 $brand = 'Ofiequipo Admin';
 $cfgRes = @$conn->query("SELECT valor FROM admin_config WHERE clave='tienda_nombre' LIMIT 1");
-if ($cfgRes && $row = $cfgRes->fetch_assoc()) {
-    $brand = $row['valor'] . ' · Admin';
+if ($cfgRes && $cfgRow = $cfgRes->fetch_assoc()) {
+    $brand = $cfgRow['valor'] . ' · Admin';
 }
 
 /* Iconos SVG para el sidebar */

@@ -18,18 +18,6 @@ if (!function_exists('prodCountInCat')) {
     }
 }
 
-function getImageUrl($imagePath) {
-    if (empty($imagePath)) return 'https://via.placeholder.com/800x600?text=Sin+imagen';
-    $imagePath = trim($imagePath);
-    if (empty($imagePath)) return 'https://via.placeholder.com/800x600?text=Sin+imagen';
-    if (preg_match('/^https?:\/\//i', $imagePath)) return 'image.php?u=' . rawurlencode($imagePath);
-    if (filter_var($imagePath, FILTER_VALIDATE_URL)) return 'image.php?u=' . rawurlencode($imagePath);
-    $imagePath = str_replace('\\', '/', $imagePath);
-    $imgTrim   = ltrim($imagePath, '/');
-    if (stripos($imgTrim, 'uploads/') === 0)
-        return 'image.php?path=' . implode('/', array_map('rawurlencode', explode('/', $imgTrim)));
-    return 'image.php?path=' . implode('/', array_map('rawurlencode', explode('/', 'Uploads/' . $imgTrim)));
-}
 
 $id = (int)($_GET['id'] ?? 0);
 if ($id <= 0) { header('Location: index.php'); exit; }

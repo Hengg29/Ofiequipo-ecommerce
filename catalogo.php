@@ -2,55 +2,7 @@
 session_start();
 session_write_close(); // Liberar lock antes de queries
 require_once "apis/db.php";
-
-// Función helper para normalizar y obtener URLs de imágenes
-function getImageUrl($imagePath)
-{
-    if (empty($imagePath)) {
-        return 'https://via.placeholder.com/800x600?text=Sin+imagen';
-    }
-
-    // Limpiar espacios en blanco al inicio y final
-    $imagePath = trim($imagePath);
-
-    // Si está vacío después de trim, usar placeholder
-    if (empty($imagePath)) {
-        return 'https://via.placeholder.com/800x600?text=Sin+imagen';
-    }
-
-    // Si es una URL externa (http:// o https://), usar image.php como proxy para evitar CORS
-    if (preg_match('/^https?:\/\//i', $imagePath)) {
-        // Usar rawurlencode para preservar caracteres especiales ya codificados en la URL
-        // rawurlencode es más apropiado para URLs completas
-        return 'image.php?u=' . rawurlencode($imagePath);
-    }
-
-    // Verificar también con filter_var como respaldo
-    if (filter_var($imagePath, FILTER_VALIDATE_URL)) {
-        return 'image.php?u=' . rawurlencode($imagePath);
-    }
-
-    // Normalizar rutas locales para servir a través de image.php
-    // Normalizar barras (Windows puede usar \)
-    $imagePath = str_replace('\\', '/', $imagePath);
-    $imgTrim = ltrim($imagePath, '/');
-
-    // Si ya tiene prefijo Uploads/uploads, usar tal cual
-    if (stripos($imgTrim, 'uploads/') === 0 || stripos($imgTrim, 'Uploads/') === 0) {
-        // Usar image.php para servir la imagen local
-        $parts = explode('/', $imgTrim);
-        $encodedParts = array_map('rawurlencode', $parts);
-        $encodedPath = implode('/', $encodedParts);
-        return 'image.php?path=' . $encodedPath;
-    } else {
-        // Agregar prefijo Uploads/ si no lo tiene
-        $fullPath = 'Uploads/' . $imgTrim;
-        $parts = explode('/', $fullPath);
-        $encodedParts = array_map('rawurlencode', $parts);
-        $encodedPath = implode('/', $encodedParts);
-        return 'image.php?path=' . $encodedPath;
-    }
-}
+require_once __DIR__ . '/includes/image_helper.php';
 
 $categoria_id = isset($_GET['categoria']) ? (int) $_GET['categoria'] : 0;
 $categoria_parent_id = isset($_GET['categoria_parent']) ? (int) $_GET['categoria_parent'] : 0;
