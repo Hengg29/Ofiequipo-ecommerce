@@ -237,7 +237,7 @@ if ($imgActual !== '') {
 
     <div class="form-row">
         <label>Nombre</label>
-        <input name="nombre" required value="<?= admin_h($row['nombre']) ?>">
+        <input name="nombre" required value="<?= admin_h($row['nombre'] ?? '') ?>">
     </div>
 
     <div class="form-row">
