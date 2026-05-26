@@ -8,6 +8,11 @@ require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/../includes/mailer.php';
 ob_clean();
 
+if (empty($_SESSION['user_id'])) {
+    echo json_encode(['error' => 'No autenticado.']);
+    exit;
+}
+
 $clientId = $_ENV['PAYPAL_CLIENT_ID'] ?? '';
 $secret   = $_ENV['PAYPAL_SECRET']    ?? '';
 $mode     = $_ENV['PAYPAL_MODE']      ?? 'sandbox';
@@ -170,7 +175,8 @@ if (($capture['status'] ?? '') === 'COMPLETED') {
         $adminPedidoId = (int)$conn->insert_id; $iap->close();
 
         // Vincular pedido con admin_pedido para sincronizar estado
-        $conn->query("UPDATE pedidos SET admin_pedido_id = $adminPedidoId WHERE id = $pedidoId");
+        $upLink = $conn->prepare("UPDATE pedidos SET admin_pedido_id = ? WHERE id = ?");
+        $upLink->bind_param('ii', $adminPedidoId, $pedidoId); $upLink->execute(); $upLink->close();
 
         // Crear registro de envío pendiente
         $iae = $conn->prepare("INSERT INTO admin_envios (pedido_id, estado) VALUES (?, 'pendiente')");

@@ -23,6 +23,7 @@ if (!$ped) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrf_verify();
     $nuevo = trim($_POST['estado'] ?? '');
     $notas = trim($_POST['notas'] ?? '');
     $ok = in_array(
@@ -188,6 +189,7 @@ require __DIR__ . '/includes/layout.php';
     <div class="card" style="margin-bottom:0;">
         <h2>Estado del pedido</h2>
         <form method="post">
+            <?= csrf_field() ?>
             <div class="form-row">
                 <label for="estado">Estado</label>
                 <select name="estado" id="estado">

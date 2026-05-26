@@ -18,6 +18,7 @@ if (!admin_table_exists($conn, 'admin_envios') || !admin_table_exists($conn, 'ad
 $filter = trim($_GET['f'] ?? '');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrf_verify();
     $pid   = (int) ($_POST['pedido_id'] ?? 0);
     $guia  = trim($_POST['guia_rastreo'] ?? '');
     $trans = trim($_POST['transportista'] ?? '');
@@ -131,6 +132,7 @@ require __DIR__ . '/includes/layout.php';
                 <tr>
                     <td colspan="7" style="padding:0; border:none;">
                         <form method="post" id="form-<?= (int) $r['pedido_id'] ?>" style="display:none; padding:16px; background:#243044;">
+                            <?= csrf_field() ?>
                             <input type="hidden" name="pedido_id" value="<?= (int) $r['pedido_id'] ?>">
                             <div class="form-row" style="display:inline-block; width:160px;">
                                 <label>Estado</label>

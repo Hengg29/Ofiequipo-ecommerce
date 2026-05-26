@@ -16,6 +16,7 @@ if (admin_table_exists($conn, 'producto')) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_activo']) && $hasActivo) {
+    csrf_verify();
     $pid = (int) ($_POST['producto_id'] ?? 0);
     $nv  = (int) ($_POST['nuevo_activo'] ?? 0);
     if ($pid > 0) {
@@ -88,6 +89,7 @@ require __DIR__ . '/includes/layout.php';
                     <?php if ($hasActivo): ?>
                         <td>
                             <form method="post" style="display:inline;">
+                                <?= csrf_field() ?>
                                 <input type="hidden" name="toggle_activo" value="1">
                                 <input type="hidden" name="producto_id" value="<?= (int) $p['id'] ?>">
                                 <input type="hidden" name="nuevo_activo" value="<?= !empty($p['activo']) ? 0 : 1 ?>">

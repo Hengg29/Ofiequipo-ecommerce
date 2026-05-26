@@ -22,6 +22,7 @@ if (!admin_table_exists($conn, 'admin_config')) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrf_verify();
     $st = $conn->prepare(
         'INSERT INTO admin_config (clave, valor, grupo) VALUES (?,?,?)
          ON DUPLICATE KEY UPDATE valor = VALUES(valor), grupo = VALUES(grupo)'
@@ -73,6 +74,7 @@ require __DIR__ . '/includes/layout.php';
 <?php if ($msg): ?><div class="alert ok"><?= admin_h($msg) ?></div><?php endif; ?>
 
 <form method="post" class="card">
+    <?= csrf_field() ?>
     <table class="data">
         <thead>
             <tr><th>Clave</th><th>Grupo</th><th>Valor</th></tr>

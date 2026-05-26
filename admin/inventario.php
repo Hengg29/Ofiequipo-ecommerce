@@ -18,6 +18,7 @@ if (!admin_table_exists($conn, 'admin_inventario_mov')) {
 $uid = isset($_SESSION['admin_user_id']) ? (int) $_SESSION['admin_user_id'] : 0;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mov'])) {
+    csrf_verify();
     $pid = (int) ($_POST['producto_id'] ?? 0);
     $tipo = trim($_POST['tipo'] ?? '');
     $cant = (int) ($_POST['cantidad'] ?? 0);
@@ -112,6 +113,7 @@ require __DIR__ . '/includes/layout.php';
 
 <div class="grid" style="grid-template-columns: 1fr 1fr; gap:20px; align-items:start;">
     <form method="post" class="card">
+        <?= csrf_field() ?>
         <h2>Registrar movimiento</h2>
         <input type="hidden" name="mov" value="1">
         <div class="form-row"><label>Producto</label>

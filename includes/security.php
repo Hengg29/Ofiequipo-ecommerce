@@ -62,7 +62,8 @@ function security_headers(): void
         "connect-src 'self' " .
             "https://www.paypal.com https://www.sandbox.paypal.com " .
             "https://api.stripe.com https://errors.stripe.com " .
-            "https://api-m.sandbox.paypal.com; " .
+            "https://api-m.sandbox.paypal.com " .
+            "https://nominatim.openstreetmap.org; " .
         "object-src 'none';"
     );
 }

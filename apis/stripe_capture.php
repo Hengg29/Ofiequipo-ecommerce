@@ -106,7 +106,8 @@ try {
         $iap->execute();
         $adminPedidoId = (int)$conn->insert_id; $iap->close();
 
-        $conn->query("UPDATE pedidos SET admin_pedido_id = $adminPedidoId WHERE id = $pedidoId");
+        $upLink = $conn->prepare("UPDATE pedidos SET admin_pedido_id = ? WHERE id = ?");
+        $upLink->bind_param('ii', $adminPedidoId, $pedidoId); $upLink->execute(); $upLink->close();
 
         $iae = $conn->prepare("INSERT INTO admin_envios (pedido_id, estado) VALUES (?, 'pendiente')");
         $iae->bind_param('i', $adminPedidoId); $iae->execute(); $iae->close();

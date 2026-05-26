@@ -1,5 +1,8 @@
 <?php
+require_once __DIR__ . '/includes/security.php';
+security_session_configure();
 session_start();
+security_headers();
 require_once __DIR__ . '/apis/db.php';
 require_once __DIR__ . '/includes/require_login.php';
 

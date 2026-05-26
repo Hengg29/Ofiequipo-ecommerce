@@ -1,5 +1,9 @@
 <?php
+require_once __DIR__ . '/includes/security.php';
+security_session_configure();
 session_start();
+security_headers();
+header('Permissions-Policy: geolocation=(self)'); // sobrescribe el bloqueo: solo este origen
 require_once __DIR__ . '/apis/db.php';
 require_once __DIR__ . '/includes/require_login.php';
 
@@ -24,6 +28,7 @@ $CIUDADES_VALIDAS = ['Tampico', 'Altamira', 'Ciudad Madero'];
 $errorCiudad = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrf_verify();
     $ciudadPost = trim($_POST['ciudad'] ?? '');
     if (!in_array($ciudadPost, $CIUDADES_VALIDAS, true)) {
         $errorCiudad = 'Solo realizamos entregas en Tampico, Altamira y Ciudad Madero.';
@@ -429,6 +434,7 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
             <!-- FORM -->
             <div>
                 <form method="POST" action="datos.php" id="datosForm">
+                    <?= csrf_field() ?>
 
                     <!-- Personal info -->
                     <div class="form-card" style="margin-bottom:20px;">

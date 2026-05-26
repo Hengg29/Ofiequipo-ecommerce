@@ -31,6 +31,7 @@ if ($r) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrf_verify();
     $nombre = trim($_POST['nombre_contacto'] ?? '');
     $email = trim($_POST['email_contacto'] ?? '');
     $tel = trim($_POST['telefono'] ?? '');
@@ -144,6 +145,7 @@ require __DIR__ . '/includes/layout.php';
     <div class="alert err"><?= admin_h($error) ?></div><?php endif; ?>
 
 <form method="post">
+    <?= csrf_field() ?>
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start; margin-bottom:20px;">
         <div class="card" style="margin-bottom:0;">
             <h2>
