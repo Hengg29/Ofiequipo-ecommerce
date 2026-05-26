@@ -11,7 +11,8 @@
       "Bash(php -l admin/ventas.php)",
       "Bash(php -l admin/envios.php)",
       "Bash(php -l admin/venta.php)",
-      "Bash(php -l admin/cliente.php)"
+      "Bash(php -l admin/cliente.php)",
+      "Bash(php -l /Users/hengg/Documents/OfieEquipoV2/datos.php)"
     ]
   }
 }

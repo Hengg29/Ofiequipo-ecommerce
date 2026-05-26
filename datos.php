@@ -20,25 +20,33 @@ $cartCount = array_sum(array_column($cart, 'cantidad'));
 if (empty($cart)) { header('Location: carrito.php'); exit; }
 
 // Guardar datos en sesión y redirigir a pago
+$CIUDADES_VALIDAS = ['Tampico', 'Altamira', 'Ciudad Madero'];
+$errorCiudad = '';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $_SESSION['checkout_datos'] = [
-        'nombre'       => trim($_POST['nombre']       ?? ''),
-        'apellido'     => trim($_POST['apellido']     ?? ''),
-        'email'        => trim($_POST['email']        ?? ''),
-        'telefono'     => trim($_POST['telefono']     ?? ''),
-        'direccion'    => trim($_POST['direccion']    ?? ''),
-        'colonia'      => trim($_POST['colonia']      ?? ''),
-        'ciudad'       => trim($_POST['ciudad']       ?? ''),
-        'estado'       => trim($_POST['estado']       ?? ''),
-        'cp'           => trim($_POST['cp']           ?? ''),
-        'factura'      => !empty($_POST['factura']),
-        'rfc'          => trim($_POST['rfc']          ?? ''),
-        'razon_social' => trim($_POST['razon_social'] ?? ''),
-        'regimen'      => trim($_POST['regimen']      ?? ''),
-        'email_fiscal' => trim($_POST['email_fiscal'] ?? ''),
-    ];
-    header('Location: pago.php');
-    exit;
+    $ciudadPost = trim($_POST['ciudad'] ?? '');
+    if (!in_array($ciudadPost, $CIUDADES_VALIDAS, true)) {
+        $errorCiudad = 'Solo realizamos entregas en Tampico, Altamira y Ciudad Madero.';
+    } else {
+        $_SESSION['checkout_datos'] = [
+            'nombre'       => trim($_POST['nombre']       ?? ''),
+            'apellido'     => trim($_POST['apellido']     ?? ''),
+            'email'        => trim($_POST['email']        ?? ''),
+            'telefono'     => trim($_POST['telefono']     ?? ''),
+            'direccion'    => trim($_POST['direccion']    ?? ''),
+            'colonia'      => trim($_POST['colonia']      ?? ''),
+            'ciudad'       => $ciudadPost,
+            'estado'       => 'Tamaulipas',
+            'cp'           => trim($_POST['cp']           ?? ''),
+            'factura'      => !empty($_POST['factura']),
+            'rfc'          => trim($_POST['rfc']          ?? ''),
+            'razon_social' => trim($_POST['razon_social'] ?? ''),
+            'regimen'      => trim($_POST['regimen']      ?? ''),
+            'email_fiscal' => trim($_POST['email_fiscal'] ?? ''),
+        ];
+        header('Location: pago.php');
+        exit;
+    }
 }
 
 $d = $_SESSION['checkout_datos'] ?? [];
@@ -479,12 +487,26 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
                                 ¡Ubicación detectada! Revisa y ajusta si es necesario.
                             </div>
 
+                            <div id="locationFueraZona" style="display:none;align-items:flex-start;gap:10px;background:#fffbeb;border:1.5px solid #fcd34d;border-radius:10px;padding:12px 14px;font-size:13px;color:#92400e;line-height:1.5;"></div>
+
                             <div class="form-group">
                                 <label>Calle y número *</label>
                                 <input type="text" id="direccion" name="direccion"
                                        placeholder="Av. Hidalgo 1234, Int. 5" required
                                        value="<?= htmlspecialchars($d['direccion'] ?? '') ?>">
                             </div>
+                            <!-- Aviso zona de cobertura -->
+                            <div style="display:flex;align-items:flex-start;gap:10px;background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:10px;padding:12px 14px;margin-bottom:16px;">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="#2563eb" style="flex-shrink:0;margin-top:1px"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                                <span style="font-size:13px;color:#1e40af;line-height:1.5;"><strong>Zona de entrega:</strong> Solo realizamos entregas en <strong>Tampico</strong>, <strong>Altamira</strong> y <strong>Ciudad Madero</strong>, Tamaulipas.</span>
+                            </div>
+
+                            <?php if ($errorCiudad): ?>
+                            <div style="background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:13px;color:#b91c1c;">
+                                <?= htmlspecialchars($errorCiudad) ?>
+                            </div>
+                            <?php endif; ?>
+
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>Colonia</label>
@@ -493,18 +515,22 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
                                 </div>
                                 <div class="form-group">
                                     <label>Ciudad *</label>
-                                    <input type="text" id="ciudad" name="ciudad" placeholder="Tampico" required
-                                           value="<?= htmlspecialchars($d['ciudad'] ?? '') ?>">
+                                    <select id="ciudad" name="ciudad" required style="width:100%;padding:11px 13px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:14px;font-family:inherit;background:white;color:#1a1a2e;outline:none;transition:border-color .2s;appearance:none;background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='%2364748b'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E\");background-repeat:no-repeat;background-position:right 12px center;">
+                                        <option value="">Selecciona tu ciudad</option>
+                                        <?php foreach ($CIUDADES_VALIDAS as $c): ?>
+                                        <option value="<?= htmlspecialchars($c) ?>" <?= (($d['ciudad'] ?? '') === $c) ? 'selected' : '' ?>><?= htmlspecialchars($c) ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
                                 </div>
                             </div>
                             <div class="form-row" style="margin-bottom:0;">
                                 <div class="form-group" style="margin-bottom:0;">
-                                    <label>Estado *</label>
-                                    <input type="text" id="estado" name="estado" placeholder="Tamaulipas" required
-                                           value="<?= htmlspecialchars($d['estado'] ?? '') ?>">
+                                    <label>Estado</label>
+                                    <input type="text" id="estado" name="estado" value="Tamaulipas" readonly
+                                           style="background:#f8fafc;color:#64748b;cursor:not-allowed;">
                                 </div>
                                 <div class="form-group" style="margin-bottom:0;">
-                                    <label>Código postal *</label>
+                                    <label>Código postal</label>
                                     <input type="text" id="cp" name="cp" placeholder="89240"
                                            maxlength="5" pattern="\d{5}"
                                            value="<?= htmlspecialchars($d['cp'] ?? '') ?>">
@@ -647,11 +673,32 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
                         const street = [a.road || a.pedestrian || '', a.house_number || ''].filter(Boolean).join(' ');
                         document.getElementById('direccion').value = street;
                         document.getElementById('colonia').value   = a.suburb || a.neighbourhood || a.quarter || a.city_district || '';
-                        document.getElementById('ciudad').value    = a.city || a.town || a.municipality || a.village || '';
-                        document.getElementById('estado').value    = a.state || '';
+                        // Mapear ciudad detectada a las ciudades válidas
+                        const ciudadDetectada = (a.city || a.town || a.municipality || a.village || '').toLowerCase();
+                        const mapaCiudades = { 'tampico': 'Tampico', 'altamira': 'Altamira', 'ciudad madero': 'Ciudad Madero', 'madero': 'Ciudad Madero', 'cd. madero': 'Ciudad Madero', 'cd madero': 'Ciudad Madero' };
+                        const ciudadValida = mapaCiudades[ciudadDetectada] || '';
+                        const selectCiudad = document.getElementById('ciudad');
+                        selectCiudad.value = ciudadValida;
+                        document.getElementById('estado').value    = 'Tamaulipas';
                         document.getElementById('cp').value        = (a.postcode || '').replace(/[^0-9]/g,'').slice(0,5);
 
-                        document.getElementById('locationOk').classList.add('show');
+                        const locationOk  = document.getElementById('locationOk');
+                        const locationErr = document.getElementById('locationFueraZona');
+                        if (ciudadValida) {
+                            locationOk.classList.add('show');
+                            if (locationErr) locationErr.style.display = 'none';
+                        } else {
+                            const nombreDetectado = a.city || a.town || a.municipality || a.village || 'tu ubicación actual';
+                            if (locationErr) {
+                                locationErr.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="#b45309" style="flex-shrink:0;margin-top:1px"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg> <span>Lo sentimos, <strong>${escHtml(nombreDetectado)}</strong> está fuera de nuestra zona de entrega. Solo entregamos en Tampico, Altamira y Ciudad Madero.</span>`;
+                                locationErr.style.display = 'flex';
+                            }
+                            locationOk.classList.remove('show');
+                            // Limpiar dirección y colonia ya que no son de zona válida
+                            document.getElementById('direccion').value = '';
+                            document.getElementById('colonia').value   = '';
+                            document.getElementById('cp').value        = '';
+                        }
                         resetLocationBtn();
                     })
                     .catch(() => {
@@ -726,7 +773,7 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
         document.getElementById('direccion').value = a.direccion || '';
         document.getElementById('colonia').value   = a.colonia   || '';
         document.getElementById('ciudad').value    = a.ciudad    || '';
-        document.getElementById('estado').value    = a.estado    || '';
+        document.getElementById('estado').value    = 'Tamaulipas';
         document.getElementById('cp').value        = a.cp        || '';
         document.querySelectorAll('.addr-card').forEach(c => c.classList.remove('selected'));
         const card = document.getElementById('addrCard' + i);
