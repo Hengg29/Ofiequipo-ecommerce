@@ -2,6 +2,7 @@
 session_start();
 session_write_close(); // Liberar lock de sesión antes de queries pesadas
 require_once __DIR__ . '/apis/db.php';
+require_once __DIR__ . '/includes/image_helper.php';
 
 // Pre-cargar categorías y conteos para el navbar (evita N+1)
 $_allCatsRaw = $conn->query("SELECT id, nombre, parent_id FROM categoria ORDER BY nombre")->fetch_all(MYSQLI_ASSOC);

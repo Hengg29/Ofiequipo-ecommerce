@@ -845,7 +845,8 @@ function pageUrl($p)
 
         /* Product Card - usando las clases del CSS externo pero con ajustes */
         .product-card .product-image {
-            height: 280px;
+            aspect-ratio: 1 / 1;
+            height: auto;
         }
 
         .product-card .product-content {
@@ -977,7 +978,8 @@ function pageUrl($p)
             }
 
             .product-card .product-image {
-                height: 220px;
+                aspect-ratio: 1 / 1;
+                height: auto;
             }
 
             .product-content {
@@ -1211,7 +1213,8 @@ function pageUrl($p)
 
             .product-image {
                 width: 100%;
-                height: 200px;
+                aspect-ratio: 1 / 1;
+                height: auto;
                 overflow: hidden;
                 border-radius: 8px;
             }
@@ -1338,7 +1341,8 @@ function pageUrl($p)
             }
 
             .product-image {
-                height: 220px;
+                aspect-ratio: 1 / 1;
+                height: auto;
                 border-radius: 12px;
             }
 

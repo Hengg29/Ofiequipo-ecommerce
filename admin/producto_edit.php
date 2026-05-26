@@ -197,7 +197,7 @@ if ($imgActual !== '') {
         : $appUrl . '/' . ltrim($imgActual, '/');
 }
 ?>
-
+<link rel="stylesheet" href="assets/cropperjs/cropper.min.css">
 <style>
 .img-tabs { display:flex; gap:0; margin-bottom:0; border-bottom:2px solid var(--border,#e5e7eb); }
 .img-tab  {
@@ -250,6 +250,8 @@ if ($imgActual !== '') {
     padding:6px 12px; font-size:12px; color:#15803d; font-weight:600;
     margin-bottom:10px;
 }
+/* Reemplazar checkerboard de Cropper.js con fondo gris igual al catálogo */
+.cropper-bg { background-image: none !important; background-color: #f1f5f9 !important; }
 </style>
 
 <div class="page-head">
@@ -308,91 +310,144 @@ if ($imgActual !== '') {
     <div class="form-row" style="flex-direction:column;align-items:flex-start;gap:12px;">
         <label style="margin-bottom:0;">Imagen del producto</label>
 
-        <!-- Vista compacta: foto actual + botón -->
-        <div style="display:flex;align-items:center;gap:16px;">
-            <div id="imgThumb" style="width:90px;height:90px;border-radius:10px;overflow:hidden;background:#f1f5f9;border:1.5px solid #e2e8f0;flex-shrink:0;display:flex;align-items:center;justify-content:center;">
+        <!-- Imagen actual -->
+        <div style="display:flex;align-items:center;gap:12px;">
+            <div id="imgThumb" style="width:100px;height:100px;border-radius:10px;overflow:hidden;background:#f1f5f9;border:1.5px solid #e2e8f0;flex-shrink:0;display:flex;align-items:center;justify-content:center;">
                 <?php if ($previewUrl): ?>
                 <img id="imgThumbImg" src="<?= htmlspecialchars($previewUrl) ?>" alt="Imagen" style="width:100%;height:100%;object-fit:cover;display:block;">
                 <?php else: ?>
                 <svg id="imgThumbPlaceholder" width="32" height="32" fill="none" stroke="#cbd5e1" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
                 <?php endif; ?>
             </div>
-            <div>
-                <button type="button" id="btnCambiarImg"
-                    style="padding:8px 16px;border:1.5px solid #1D3D8E;background:#fff;color:#1D3D8E;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;">
-                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                    Cambiar imagen
-                </button>
-                <?php if ($imgActual): ?>
-                <p id="imgActualNombre" style="font-size:11px;color:#94a3b8;margin-top:5px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><?= admin_h(basename($imgActual)) ?></p>
-                <?php endif; ?>
-            </div>
+            <?php if ($previewUrl): ?>
+            <button type="button" id="btnAjustarActual"
+                onclick="initCropper('<?= htmlspecialchars($previewUrl, ENT_QUOTES) ?>')"
+                style="padding:7px 14px;border:1.5px solid #e2e8f0;background:#fff;color:#374151;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;">
+                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Ajustar imagen actual
+            </button>
+            <?php endif; ?>
         </div>
 
-        <!-- Panel de cambio (oculto por defecto) -->
-        <div id="imgChangePanel" style="display:none;width:100%;border:1.5px solid #e2e8f0;border-radius:12px;padding:16px;background:#fafafa;">
-            <div class="img-tabs" style="margin-bottom:12px;">
-                <button type="button" class="img-tab active" data-mode="upload" onclick="switchTab('upload')">↑ Subir archivo</button>
-                <button type="button" class="img-tab" data-mode="url" onclick="switchTab('url')">🔗 URL externa</button>
-                <button type="button" class="img-tab" data-mode="srcimg" onclick="switchTab('srcimg')">🗂 Biblioteca</button>
+        <!-- Opciones de imagen siempre visibles -->
+        <div id="imgChangePanel" style="width:100%;border:1.5px solid #e2e8f0;border-radius:12px;padding:16px;background:#fafafa;">
+
+            <!-- Subir desde computadora -->
+            <p style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px;">Subir desde computadora</p>
+            <label class="drop-zone" id="dropZone">
+                <input type="file" name="imagen_upload" id="imagen_upload"
+                       accept="image/jpeg,image/png,image/gif,image/webp"
+                       onchange="onFileSelected(this)">
+                <div class="drop-zone-icon">🖼️</div>
+                <div class="drop-zone-label" id="dropLabel">Arrastra aquí o haz clic para seleccionar</div>
+                <div class="drop-zone-sub">JPG, PNG, GIF, WEBP · Máximo 5 MB</div>
+            </label>
+            <div class="img-preview-wrap" id="previewWrap">
+                <img id="previewImg" src="" alt="Preview">
+                <button type="button" class="img-preview-btn" onclick="clearPreview()">✕ Quitar</button>
             </div>
 
-            <!-- Panel: Subir archivo -->
-            <div class="img-panel active" id="panel-upload">
-                <label class="drop-zone" id="dropZone">
-                    <input type="file" name="imagen_upload" id="imagen_upload"
-                           accept="image/jpeg,image/png,image/gif,image/webp"
-                           onchange="onFileSelected(this)">
-                    <div class="drop-zone-icon">🖼️</div>
-                    <div class="drop-zone-label" id="dropLabel">Arrastra la imagen aquí o haz clic para seleccionar</div>
-                    <div class="drop-zone-sub">JPG, PNG, GIF, WEBP · Máximo 5 MB</div>
-                </label>
-                <div class="img-preview-wrap" id="previewWrap">
-                    <img id="previewImg" src="" alt="Preview">
-                    <button type="button" class="img-preview-btn" onclick="clearPreview()">✕ Quitar</button>
-                </div>
+            <!-- Separador -->
+            <div style="display:flex;align-items:center;gap:10px;margin:14px 0;">
+                <div style="flex:1;height:1px;background:#e2e8f0;"></div>
+                <span style="font-size:12px;color:#94a3b8;font-weight:500;">o ingresa una URL</span>
+                <div style="flex:1;height:1px;background:#e2e8f0;"></div>
             </div>
 
-            <!-- Panel: URL -->
-            <div class="img-panel" id="panel-url">
-                <input type="text" name="imagen_url" id="imagen_url"
-                       placeholder="https://ejemplo.com/imagen.jpg"
-                       value="<?= preg_match('/^https?:\/\//i', $imgActual) ? admin_h($imgActual) : '' ?>"
-                       style="width:100%;margin-top:4px;"
-                       oninput="previewFromUrl(this.value)">
-                <div class="img-preview-wrap" id="previewUrlWrap" style="margin-top:10px;">
-                    <img id="previewUrlImg" src="" alt="Preview URL">
-                    <button type="button" class="img-preview-btn" onclick="clearUrlPreview()">✕ Quitar</button>
-                </div>
+            <!-- URL externa -->
+            <input type="text" name="imagen_url" id="imagen_url"
+                   placeholder="https://ejemplo.com/imagen.jpg"
+                   value="<?= preg_match('/^https?:\/\//i', $imgActual) ? admin_h($imgActual) : '' ?>"
+                   style="width:100%;"
+                   oninput="previewFromUrl(this.value)">
+            <div class="img-preview-wrap" id="previewUrlWrap" style="margin-top:10px;">
+                <img id="previewUrlImg" src="" alt="Preview URL">
+                <button type="button" class="img-preview-btn" onclick="clearUrlPreview()">✕ Quitar</button>
             </div>
 
-            <!-- Panel: Biblioteca src/img -->
-            <div class="img-panel" id="panel-srcimg">
-                <input type="hidden" name="imagen_srcimg" id="imagen_srcimg" value="<?= str_starts_with($imgActual, 'src/img/') ? admin_h(basename($imgActual)) : '' ?>">
-                <label id="srcUploadZone" style="display:flex;align-items:center;gap:10px;margin:0 0 12px;padding:10px 14px;border:2px dashed #cbd5e1;border-radius:9px;cursor:pointer;font-size:13px;color:#64748b;transition:border-color .2s;">
-                    <input type="file" id="srcImgFileInput" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="#94a3b8"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
-                    <span id="srcUploadLabel">Subir imagen nueva a la biblioteca…</span>
-                    <span id="srcUploadSpinner" style="display:none;margin-left:auto;font-size:12px;color:#2563eb;">Subiendo…</span>
-                </label>
-                <div id="srcUploadError" style="display:none;font-size:12px;color:#dc2626;margin-bottom:8px;"></div>
-                <div id="srcImgGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;max-height:260px;overflow-y:auto;padding:2px;">
-                    <?php foreach ($srcImgFiles as $fname): ?>
-                    <div class="src-img-thumb <?= (basename($imgActual) === $fname && str_starts_with($imgActual, 'src/img/')) ? 'selected' : '' ?>"
-                         onclick="selectSrcImg('<?= admin_h($fname) ?>')"
-                         title="<?= admin_h($fname) ?>"
-                         style="border:2px solid transparent;border-radius:8px;overflow:hidden;cursor:pointer;background:#f1f5f9;aspect-ratio:1;">
-                        <img src="../image.php?path=<?= rawurlencode('src/img/' . $fname) ?>" alt="<?= admin_h($fname) ?>"
-                             style="width:100%;height:100%;object-fit:cover;display:block;">
+            <!-- Ajustar imagen (cropper) -->
+            <div id="cropperWrap" style="display:none;margin-top:14px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+                    <span style="font-size:12px;font-weight:600;color:#374151;">Ajustar imagen</span>
+                    <div style="display:flex;gap:6px;align-items:center;">
+                        <label style="font-size:11px;color:#64748b;font-weight:500;">Proporción:</label>
+                        <select id="cropAspect" style="font-size:12px;padding:4px 8px;border-radius:6px;border:1px solid #e2e8f0;">
+                            <option value="0">Libre (catálogo)</option>
+                            <option value="1">1:1 (cuadrada)</option>
+                            <option value="1.333">4:3</option>
+                            <option value="1.778">16:9</option>
+                        </select>
+                        <button type="button" onclick="rotateCropper(-90)" style="padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px;background:#fff;cursor:pointer;font-size:12px;" title="Rotar izquierda">↺</button>
+                        <button type="button" onclick="rotateCropper(90)"  style="padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px;background:#fff;cursor:pointer;font-size:12px;" title="Rotar derecha">↻</button>
                     </div>
-                    <?php endforeach; ?>
                 </div>
-                <?php if (empty($srcImgFiles)): ?>
-                <p style="color:#94a3b8;font-size:12px;margin-top:8px;">La biblioteca está vacía. Sube la primera imagen arriba.</p>
-                <?php endif; ?>
-                <p id="srcImgSelected" style="font-size:12px;color:#1e3a8a;margin-top:8px;font-weight:600;min-height:16px;">
-                    <?= str_starts_with($imgActual, 'src/img/') ? 'Seleccionada: ' . admin_h(basename($imgActual)) : '' ?>
-                </p>
+                <div style="display:grid;grid-template-columns:1fr 180px;gap:12px;align-items:start;">
+                    <!-- Cropper -->
+                    <div style="border-radius:10px;overflow:hidden;height:320px;background:#f1f5f9;">
+                        <div style="position:relative;width:100%;height:100%;">
+                            <img id="cropperImg" src="" alt="Crop" style="display:block;max-width:100%;max-height:100%;">
+                        </div>
+                    </div>
+                    <!-- Preview catálogo -->
+                    <div>
+                        <p style="font-size:11px;color:#94a3b8;font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">Vista en catálogo</p>
+                        <!-- Replica exacta del .product-card de css/style.css -->
+                        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+                            <div id="cropPreview" style="width:100%;aspect-ratio:1/1;overflow:hidden;background:#f3f4f6;position:relative;"></div>
+                            <div style="padding:12px 14px;">
+                                <div style="font-size:13px;font-weight:600;color:#1f2937;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-0.3px;"><?= admin_h($row['nombre'] ?: 'Nombre producto') ?></div>
+                                <div style="font-size:11px;color:#6b7280;margin-bottom:10px;line-height:1.6;">Descripción breve...</div>
+                                <div style="display:flex;gap:6px;">
+                                    <div style="flex:1;padding:7px 0;background:#1e3a8a;color:#fff;border-radius:6px;font-size:11px;font-weight:600;text-align:center;">Cotizar</div>
+                                    <div style="flex:1;padding:7px 0;background:#fff;color:#1e3a8a;border:1.5px solid #1e3a8a;border-radius:6px;font-size:11px;font-weight:600;text-align:center;">Comprar</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:10px;">
+                    <button type="button" id="btnAplicarCrop"
+                        style="flex:1;padding:9px 0;background:#1D3D8E;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                        Aplicar recorte
+                    </button>
+                    <button type="button" id="btnCancelarCrop"
+                        style="padding:9px 16px;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;color:#374151;">
+                        Cancelar
+                    </button>
+                </div>
+                <p id="cropStatus" style="font-size:12px;color:#2563eb;margin-top:6px;min-height:16px;"></p>
+            </div>
+
+            <!-- Inputs ocultos necesarios para el backend -->
+            <input type="hidden" name="imagen_srcimg" id="imagen_srcimg" value="<?= str_starts_with($imgActual, 'src/img/') ? admin_h(basename($imgActual)) : '' ?>">
+            <!-- Biblioteca oculta (funcional pero no visible) -->
+            <div id="srcImgGrid" style="display:none;">
+                <?php foreach ($srcImgFiles as $fname): ?>
+                <div class="src-img-thumb" onclick="selectSrcImg('<?= admin_h($fname) ?>')" title="<?= admin_h($fname) ?>"></div>
+                <?php endforeach; ?>
+            </div>
+            <span id="srcUploadSpinner" style="display:none;"></span>
+            <span id="srcUploadLabel" style="display:none;"></span>
+            <div id="srcUploadError" style="display:none;"></div>
+            <p id="srcImgSelected" style="display:none;"></p>
+        </div>
+
+        <!-- ── Vista en catálogo (siempre visible) ─────────────────── -->
+        <div style="padding:14px;border:1.5px dashed #cbd5e1;border-radius:12px;background:#f8fafc;">
+            <p style="font-size:11px;color:#94a3b8;font-weight:600;margin:0 0 10px;text-transform:uppercase;letter-spacing:.5px;">Vista en catálogo</p>
+            <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;max-width:220px;">
+                <div style="width:100%;aspect-ratio:1/1;overflow:hidden;background:#f3f4f6;">
+                    <img id="catalogPreviewImg" src="<?= htmlspecialchars($previewUrl) ?>" alt=""
+                         style="width:100%;height:100%;object-fit:cover;object-position:center;display:block;">
+                </div>
+                <div style="padding:12px 14px;">
+                    <div style="font-size:13px;font-weight:600;color:#1f2937;margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?= admin_h($row['nombre'] ?: 'Nombre producto') ?></div>
+                    <div style="display:flex;gap:6px;">
+                        <div style="flex:1;padding:7px 0;background:#1e3a8a;color:#fff;border-radius:6px;font-size:11px;font-weight:600;text-align:center;">Cotizar</div>
+                        <div style="flex:1;padding:7px 0;background:#fff;color:#1e3a8a;border:1.5px solid #1e3a8a;border-radius:6px;font-size:11px;font-weight:600;text-align:center;">Comprar</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -445,13 +500,7 @@ if ($imgActual !== '') {
 <?php endif; ?>
 
 <script>
-// ── Toggle panel de cambio de imagen ─────────────────────────────
-document.getElementById('btnCambiarImg').addEventListener('click', function() {
-    const panel = document.getElementById('imgChangePanel');
-    const open  = panel.style.display !== 'none';
-    panel.style.display = open ? 'none' : 'block';
-    this.style.background = open ? '#fff' : '#eff6ff';
-});
+let cropper = null;
 
 // ── Actualizar thumb al elegir nueva imagen ───────────────────────
 function updateThumb(src) {
@@ -466,13 +515,13 @@ function updateThumb(src) {
         wrap.appendChild(img);
     }
     img.src = src;
+    const catImg = document.getElementById('catalogPreviewImg');
+    if (catImg) catImg.src = src;
 }
 
-// ── Tabs ──────────────────────────────────────────────────────────
+// ── Modo de imagen (sin tabs, se detecta automáticamente) ────────
 function switchTab(mode) {
     document.getElementById('imagen_modo').value = mode;
-    document.querySelectorAll('.img-tab').forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
-    document.querySelectorAll('.img-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + mode));
 }
 
 // ── Biblioteca src/img ────────────────────────────────────────────
@@ -504,6 +553,8 @@ dropZone.addEventListener('drop', e => {
 
 function onFileSelected(input) {
     if (input.files && input.files[0]) {
+        switchTab('upload');
+        document.getElementById('imagen_url').value = '';
         showPreview(input.files[0]);
     }
 }
@@ -514,6 +565,7 @@ function showPreview(file) {
         document.getElementById('previewImg').src = e.target.result;
         document.getElementById('previewWrap').classList.add('visible');
         updateThumb(e.target.result);
+        initCropper(e.target.result);
     };
     reader.readAsDataURL(file);
     document.getElementById('dropLabel').textContent = file.name;
@@ -530,6 +582,7 @@ function clearPreview() {
 (function() {
     const fileInput = document.getElementById('srcImgFileInput');
     const srcZone   = document.getElementById('srcUploadZone');
+    if (!fileInput || !srcZone) return;
 
     fileInput.addEventListener('change', function() {
         if (this.files[0]) uploadToSrcImg(this.files[0]);
@@ -575,6 +628,71 @@ function uploadToSrcImg(file) {
         });
 }
 
+// ── Cropper.js ───────────────────────────────────────────────────
+function initCropper(src) {
+    const wrap = document.getElementById('cropperWrap');
+    const img  = document.getElementById('cropperImg');
+    if (cropper) { cropper.destroy(); cropper = null; }
+    wrap.style.display = 'block';
+    img.src = '';
+    img.onload = () => {
+        const aspectVal = parseFloat(document.getElementById('cropAspect').value);
+        cropper = new Cropper(img, {
+            aspectRatio: aspectVal || NaN,
+            viewMode: 1,
+            autoCropArea: 1,
+            movable: true,
+            zoomable: true,
+            rotatable: true,
+            preview: '#cropPreview',
+        });
+    };
+    img.onerror = () => {
+        document.getElementById('cropStatus').style.color = '#dc2626';
+        document.getElementById('cropStatus').textContent = 'No se pudo cargar la imagen para recortar.';
+    };
+    img.src = src;
+}
+
+document.getElementById('cropAspect').addEventListener('change', function() {
+    if (!cropper) return;
+    const val = parseFloat(this.value);
+    cropper.setAspectRatio(val || NaN);
+});
+
+function rotateCropper(deg) { if (cropper) cropper.rotate(deg); }
+
+document.getElementById('btnCancelarCrop').addEventListener('click', () => {
+    if (cropper) { cropper.destroy(); cropper = null; }
+    document.getElementById('cropperWrap').style.display = 'none';
+});
+
+document.getElementById('btnAplicarCrop').addEventListener('click', () => {
+    if (!cropper) return;
+    const status = document.getElementById('cropStatus');
+    status.textContent = 'Subiendo recorte…';
+    const canvas = cropper.getCroppedCanvas({ maxWidth: 1200, maxHeight: 1200, fillColor: '#fff' });
+    canvas.toBlob(blob => {
+        const fd = new FormData();
+        fd.append('file', blob, 'recorte.jpg');
+        fetch('apis/upload_srcimg.php', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) { status.style.color='#dc2626'; status.textContent = data.error; return; }
+                document.getElementById('imagen_srcimg').value = data.filename;
+                switchTab('srcimg');
+                document.getElementById('imagen_upload').value = '';
+                document.getElementById('imagen_url').value = '';
+                updateThumb('../image.php?path=' + encodeURIComponent('src/img/' + data.filename));
+                status.style.color = '#16a34a';
+                status.textContent = '✓ Recorte aplicado: ' + data.filename;
+                cropper.destroy(); cropper = null;
+                setTimeout(() => { document.getElementById('cropperWrap').style.display = 'none'; status.textContent = ''; }, 1800);
+            })
+            .catch(() => { status.style.color='#dc2626'; status.textContent = 'Error de red.'; });
+    }, 'image/jpeg', 0.92);
+});
+
 // ── URL preview ───────────────────────────────────────────────────
 let urlTimer;
 function previewFromUrl(url) {
@@ -585,7 +703,13 @@ function previewFromUrl(url) {
     }
     urlTimer = setTimeout(() => {
         const img = document.getElementById('previewUrlImg');
-        img.onload  = () => { document.getElementById('previewUrlWrap').classList.add('visible'); updateThumb(url); };
+        img.onload  = () => {
+            document.getElementById('previewUrlWrap').classList.add('visible');
+            switchTab('url');
+            document.getElementById('imagen_upload').value = '';
+            updateThumb(url);
+            initCropper(url);
+        };
         img.onerror = () => document.getElementById('previewUrlWrap').classList.remove('visible');
         img.src = url;
     }, 600);
@@ -632,4 +756,5 @@ function clearUrlPreview() {
 })();
 </script>
 
+<script src="assets/cropperjs/cropper.min.js"></script>
 <?php require __DIR__ . '/includes/layout_end.php'; ?>

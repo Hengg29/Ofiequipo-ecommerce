@@ -54,7 +54,7 @@ function security_headers(): void
             "https://www.paypal.com https://www.sandbox.paypal.com " .
             "https://js.stripe.com https://cdn.jsdelivr.net " .
             "https://fonts.googleapis.com; " .
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " .
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; " .
         "font-src 'self' https://fonts.gstatic.com data:; " .
         "img-src 'self' data: https: blob:; " .
         "frame-src https://www.paypal.com https://www.sandbox.paypal.com " .
