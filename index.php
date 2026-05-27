@@ -3003,7 +3003,7 @@ if ($destCol) {
                         <a href="<?= htmlspecialchars($linkUrl) ?>" data-category-id="<?= (int) $c['id'] ?>"
                             data-category-name="<?= htmlspecialchars($c['nombre']) ?>"
                             style="display:block;text-decoration:none;color:inherit;">
-                            <div class="category-image" style="height:220px;overflow:hidden;">
+                            <div class="category-image" style="aspect-ratio:1/1;overflow:hidden;">
                                 <img src="<?= htmlspecialchars($img) ?>" alt="<?= htmlspecialchars($c['nombre']) ?>"
                                     style="width:100%;height:100%;object-fit:cover;object-position:center;">
                             </div>

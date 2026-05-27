@@ -51,7 +51,7 @@ require __DIR__ . '/includes/layout.php';
 ?>
 <div class="page-head">
     <h1>Gestión de productos</h1>
-    <p>Alta, edición, precio, stock, imagen y categoría. Alertas si stock ≤ <?= (int) $umbralBajo ?>.</p>
+    <p>Alta, edición, precio, stock, imagen y categoría.</p>
 </div>
 <?php if ($msg): ?><div class="alert ok"><?= admin_h($msg) ?></div><?php endif; ?>
 
@@ -77,14 +77,19 @@ require __DIR__ . '/includes/layout.php';
             <?php foreach ($rows as $p): ?>
                 <?php
                 $stock = (int) ($p['stock'] ?? 0);
-                $bajo  = $stock <= $umbralBajo;
                 ?>
-                <tr style="<?= $bajo ? 'background:rgba(245,158,11,.08);' : '' ?>">
+                <tr>
                     <td><?= (int) $p['id'] ?></td>
-                    <td><?= admin_h($p['nombre']) ?><?= $bajo ? ' <span class="badge pendiente">bajo</span>' : '' ?></td>
+                    <td><?= admin_h($p['nombre']) ?></td>
                     <td><?= admin_h($p['cat_nombre'] ?? '') ?></td>
                     <td><?= $hasPrecio ? '$' . number_format((float) ($p['precio'] ?? 0), 2) : '—' ?></td>
-                    <td><?= $stock ?></td>
+                    <td style="text-align:center;">
+                        <?php if ($stock): ?>
+                            <span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:#dcfce7;color:#16a34a;font-size:15px;font-weight:700;" title="Con existencia">✓</span>
+                        <?php else: ?>
+                            <span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:#fee2e2;color:#dc2626;font-size:15px;font-weight:700;" title="Sin existencia">✕</span>
+                        <?php endif; ?>
+                    </td>
                     <td><?= !empty($p['destacado']) ? 'Sí' : 'No' ?></td>
                     <?php if ($hasActivo): ?>
                         <td>

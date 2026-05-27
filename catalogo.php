@@ -845,12 +845,24 @@ function pageUrl($p)
 
         /* Product Card - usando las clases del CSS externo pero con ajustes */
         .product-card .product-image {
-            aspect-ratio: 1 / 1;
-            height: auto;
+            aspect-ratio: 4 / 3;
+            overflow: hidden;
+            background: #f3f4f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .product-card .product-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            object-position: center;
         }
 
         .product-card .product-content {
             padding: 28px;
+            text-align: center;
         }
 
         .product-card .product-name {
@@ -861,11 +873,16 @@ function pageUrl($p)
         .product-card .product-description {
             font-size: 15px;
             margin-bottom: 28px;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }
 
         .product-footer {
             display: flex;
             gap: 12px;
+            justify-content: center;
         }
 
         .product-footer .btn {

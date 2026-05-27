@@ -393,7 +393,7 @@ if ($imgActual !== '') {
                         <p style="font-size:11px;color:#94a3b8;font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">Vista en catálogo</p>
                         <!-- Replica exacta del .product-card de css/style.css -->
                         <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
-                            <div id="cropPreview" style="width:100%;aspect-ratio:1/1;overflow:hidden;background:#f3f4f6;position:relative;"></div>
+                            <div id="cropPreview" style="width:100%;overflow:hidden;background:#f3f4f6;position:relative;min-height:80px;"></div>
                             <div style="padding:12px 14px;">
                                 <div style="font-size:13px;font-weight:600;color:#1f2937;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-0.3px;"><?= admin_h($row['nombre'] ?: 'Nombre producto') ?></div>
                                 <div style="font-size:11px;color:#6b7280;margin-bottom:10px;line-height:1.6;">Descripción breve...</div>
@@ -437,9 +437,9 @@ if ($imgActual !== '') {
         <div style="padding:14px;border:1.5px dashed #cbd5e1;border-radius:12px;background:#f8fafc;">
             <p style="font-size:11px;color:#94a3b8;font-weight:600;margin:0 0 10px;text-transform:uppercase;letter-spacing:.5px;">Vista en catálogo</p>
             <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;max-width:220px;">
-                <div style="width:100%;aspect-ratio:1/1;overflow:hidden;background:#f3f4f6;">
+                <div style="width:100%;aspect-ratio:4/3;overflow:hidden;background:#f3f4f6;display:flex;align-items:center;justify-content:center;">
                     <img id="catalogPreviewImg" src="<?= htmlspecialchars($previewUrl) ?>" alt=""
-                         style="width:100%;height:100%;object-fit:cover;object-position:center;display:block;">
+                         style="width:100%;height:100%;object-fit:contain;display:block;">
                 </div>
                 <div style="padding:12px 14px;">
                     <div style="font-size:13px;font-weight:600;color:#1f2937;margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?= admin_h($row['nombre'] ?: 'Nombre producto') ?></div>
@@ -629,6 +629,22 @@ function uploadToSrcImg(file) {
 }
 
 // ── Cropper.js ───────────────────────────────────────────────────
+function updatePreviewAspect(valStr) {
+    const val = parseFloat(valStr);
+    const preview = document.getElementById('cropPreview');
+    if (val && val > 0) {
+        preview.style.aspectRatio = val.toString();
+    } else {
+        // Libre: usar proporciones naturales de la imagen
+        const img = document.getElementById('cropperImg');
+        const ratio = (img && img.naturalWidth && img.naturalHeight)
+            ? img.naturalWidth / img.naturalHeight
+            : 4 / 3;
+        preview.style.aspectRatio = ratio.toFixed(4);
+    }
+    preview.style.height = '';
+}
+
 function initCropper(src) {
     const wrap = document.getElementById('cropperWrap');
     const img  = document.getElementById('cropperImg');
@@ -637,6 +653,7 @@ function initCropper(src) {
     img.src = '';
     img.onload = () => {
         const aspectVal = parseFloat(document.getElementById('cropAspect').value);
+        updatePreviewAspect(document.getElementById('cropAspect').value);
         cropper = new Cropper(img, {
             aspectRatio: aspectVal || NaN,
             viewMode: 1,
@@ -657,7 +674,9 @@ function initCropper(src) {
 document.getElementById('cropAspect').addEventListener('change', function() {
     if (!cropper) return;
     const val = parseFloat(this.value);
-    cropper.setAspectRatio(val || NaN);
+    updatePreviewAspect(this.value);
+    // requestAnimationFrame para que el div actualice su tamaño antes del re-render
+    requestAnimationFrame(() => cropper.setAspectRatio(val || NaN));
 });
 
 function rotateCropper(deg) { if (cropper) cropper.rotate(deg); }
