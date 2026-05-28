@@ -6,6 +6,8 @@ require_once __DIR__ . '/includes/image_helper.php';
 
 $categoria_id = isset($_GET['categoria']) ? (int) $_GET['categoria'] : 0;
 $categoria_parent_id = isset($_GET['categoria_parent']) ? (int) $_GET['categoria_parent'] : 0;
+$search_query = isset($_GET['search']) ? trim($_GET['search']) : '';
+$searchLike   = $search_query !== '' ? '%' . $search_query . '%' : '';
 
 // Pre-cargar TODAS las categorías y conteos en 2 queries (evita N+1 en el navbar)
 $_allCatsRaw = $conn->query("SELECT id, nombre, parent_id FROM categoria ORDER BY nombre")->fetch_all(MYSQLI_ASSOC);
@@ -136,32 +138,49 @@ if ($categoria_parent_id > 0) {
         $placeholders = str_repeat('?,', count($subCatIds) - 1) . '?';
 
         // Contar productos
-        $countStmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM producto WHERE categoria_id IN ($placeholders)");
-        $countStmt->bind_param(str_repeat('i', count($subCatIds)), ...$subCatIds);
+        $sCond = $searchLike !== '' ? ' AND (nombre LIKE ? OR descripcion LIKE ?)' : '';
+        $countStmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM producto WHERE categoria_id IN ($placeholders)$sCond");
+        if ($searchLike !== '') {
+            $countStmt->bind_param(str_repeat('i', count($subCatIds)) . 'ss', ...array_merge($subCatIds, [$searchLike, $searchLike]));
+        } else {
+            $countStmt->bind_param(str_repeat('i', count($subCatIds)), ...$subCatIds);
+        }
         $countStmt->execute();
         $cntRes = $countStmt->get_result()->fetch_assoc();
         $totalProducts = (int) ($cntRes['cnt'] ?? 0);
         $countStmt->close();
 
         // Obtener productos paginados
-        $stmt = $conn->prepare("SELECT * FROM producto WHERE categoria_id IN ($placeholders) ORDER BY nombre LIMIT ?, ?");
-        $params = array_merge($subCatIds, [$offset, $perPage]);
-        $stmt->bind_param(str_repeat('i', count($subCatIds)) . 'ii', ...$params);
+        $stmt = $conn->prepare("SELECT * FROM producto WHERE categoria_id IN ($placeholders)$sCond ORDER BY nombre LIMIT ?, ?");
+        if ($searchLike !== '') {
+            $stmt->bind_param(str_repeat('i', count($subCatIds)) . 'ssii', ...array_merge($subCatIds, [$searchLike, $searchLike, $offset, $perPage]));
+        } else {
+            $stmt->bind_param(str_repeat('i', count($subCatIds)) . 'ii', ...array_merge($subCatIds, [$offset, $perPage]));
+        }
         $stmt->execute();
         $res = $stmt->get_result();
         $productos = $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
         $stmt->close();
     } else {
         // Si no tiene subcategorías, obtener productos directamente de la categoría principal
-        $countStmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM producto WHERE categoria_id = ?");
-        $countStmt->bind_param("i", $categoria_parent_id);
+        $sCond = $searchLike !== '' ? ' AND (nombre LIKE ? OR descripcion LIKE ?)' : '';
+        $countStmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM producto WHERE categoria_id = ?$sCond");
+        if ($searchLike !== '') {
+            $countStmt->bind_param("iss", $categoria_parent_id, $searchLike, $searchLike);
+        } else {
+            $countStmt->bind_param("i", $categoria_parent_id);
+        }
         $countStmt->execute();
         $cntRes = $countStmt->get_result()->fetch_assoc();
         $totalProducts = (int) ($cntRes['cnt'] ?? 0);
         $countStmt->close();
 
-        $stmt = $conn->prepare("SELECT * FROM producto WHERE categoria_id = ? ORDER BY nombre LIMIT ?, ?");
-        $stmt->bind_param("iii", $categoria_parent_id, $offset, $perPage);
+        $stmt = $conn->prepare("SELECT * FROM producto WHERE categoria_id = ?$sCond ORDER BY nombre LIMIT ?, ?");
+        if ($searchLike !== '') {
+            $stmt->bind_param("issii", $categoria_parent_id, $searchLike, $searchLike, $offset, $perPage);
+        } else {
+            $stmt->bind_param("iii", $categoria_parent_id, $offset, $perPage);
+        }
         $stmt->execute();
         $res = $stmt->get_result();
         $productos = $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
@@ -169,26 +188,47 @@ if ($categoria_parent_id > 0) {
     }
 } elseif ($categoria_id > 0) {
     // Solo por categoría
-    $countStmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM producto WHERE categoria_id = ?");
-    $countStmt->bind_param("i", $categoria_id);
+    $sCond = $searchLike !== '' ? ' AND (nombre LIKE ? OR descripcion LIKE ?)' : '';
+    $countStmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM producto WHERE categoria_id = ?$sCond");
+    if ($searchLike !== '') {
+        $countStmt->bind_param("iss", $categoria_id, $searchLike, $searchLike);
+    } else {
+        $countStmt->bind_param("i", $categoria_id);
+    }
     $countStmt->execute();
     $cntRes = $countStmt->get_result()->fetch_assoc();
     $totalProducts = (int) ($cntRes['cnt'] ?? 0);
     $countStmt->close();
 
-    $stmt = $conn->prepare("SELECT * FROM producto WHERE categoria_id = ? ORDER BY nombre LIMIT ?, ?");
-    $stmt->bind_param("iii", $categoria_id, $offset, $perPage);
+    $stmt = $conn->prepare("SELECT * FROM producto WHERE categoria_id = ?$sCond ORDER BY nombre LIMIT ?, ?");
+    if ($searchLike !== '') {
+        $stmt->bind_param("issii", $categoria_id, $searchLike, $searchLike, $offset, $perPage);
+    } else {
+        $stmt->bind_param("iii", $categoria_id, $offset, $perPage);
+    }
     $stmt->execute();
     $res = $stmt->get_result();
     $productos = $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
     $stmt->close();
 } else {
     // Todos los productos
-    $cntRes = $conn->query("SELECT COUNT(*) AS cnt FROM producto")->fetch_assoc();
-    $totalProducts = (int) ($cntRes['cnt'] ?? 0);
+    if ($searchLike !== '') {
+        $cntStmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM producto WHERE nombre LIKE ? OR descripcion LIKE ?");
+        $cntStmt->bind_param("ss", $searchLike, $searchLike);
+        $cntStmt->execute();
+        $cntRes = $cntStmt->get_result()->fetch_assoc();
+        $totalProducts = (int) ($cntRes['cnt'] ?? 0);
+        $cntStmt->close();
 
-    $stmt = $conn->prepare("SELECT * FROM producto ORDER BY nombre LIMIT ?, ?");
-    $stmt->bind_param("ii", $offset, $perPage);
+        $stmt = $conn->prepare("SELECT * FROM producto WHERE nombre LIKE ? OR descripcion LIKE ? ORDER BY nombre LIMIT ?, ?");
+        $stmt->bind_param("ssii", $searchLike, $searchLike, $offset, $perPage);
+    } else {
+        $cntRes = $conn->query("SELECT COUNT(*) AS cnt FROM producto")->fetch_assoc();
+        $totalProducts = (int) ($cntRes['cnt'] ?? 0);
+
+        $stmt = $conn->prepare("SELECT * FROM producto ORDER BY nombre LIMIT ?, ?");
+        $stmt->bind_param("ii", $offset, $perPage);
+    }
     $stmt->execute();
     $res = $stmt->get_result();
     $productos = $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
@@ -287,6 +327,52 @@ function pageUrl($p)
         }
 
 
+        .search-bar-wrap {
+            margin-top: 24px;
+            display: flex;
+            max-width: 560px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .search-bar-wrap input[type="text"] {
+            flex: 1;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 12px 0 0 12px;
+            font-size: 15px;
+            outline: none;
+            background: rgba(255, 255, 255, 0.95);
+            color: #1a1a2e;
+        }
+
+        .search-bar-wrap button[type="submit"] {
+            padding: 14px 22px;
+            background: #1e3a8a;
+            color: white;
+            border: none;
+            border-radius: 0 12px 12px 0;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+
+        .search-bar-wrap button[type="submit"]:hover {
+            background: #1e40af;
+        }
+
+        @media (max-width: 640px) {
+            .search-bar-wrap {
+                max-width: calc(100% - 32px);
+            }
+
+            .search-bar-wrap input[type="text"] {
+                font-size: 16px;
+            }
+        }
+
         .search-results-info {
             text-align: center;
             padding: 16px 20px;
@@ -298,6 +384,16 @@ function pageUrl($p)
 
         .search-results-info strong {
             color: var(--primary-blue);
+        }
+
+        .search-results-info a {
+            color: var(--primary-blue);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .search-results-info a:hover {
+            text-decoration: underline;
         }
 
         /* Category Header Title - Estilo ZAMOFI */
@@ -1962,8 +2058,25 @@ function pageUrl($p)
         <div class="page-header-content">
             <h1>Catálogo de Productos</h1>
             <p>Descubre nuestra amplia selección de mobiliario profesional para tu oficina</p>
+            <form class="search-bar-wrap" action="catalogo.php" method="get">
+                <?php if ($categoria_id): ?><input type="hidden" name="categoria" value="<?= $categoria_id ?>"><?php endif; ?>
+                <?php if ($categoria_parent_id): ?><input type="hidden" name="categoria_parent" value="<?= $categoria_parent_id ?>"><?php endif; ?>
+                <input type="text" name="search" value="<?= htmlspecialchars($search_query) ?>" placeholder="Buscar productos...">
+                <button type="submit">Buscar</button>
+            </form>
         </div>
     </section>
+
+    <?php if ($search_query !== ''): ?>
+    <div class="search-results-info">
+        <?php if ($totalProducts > 0): ?>
+            <?= $totalProducts ?> resultado<?= $totalProducts !== 1 ? 's' : '' ?> para "<strong><?= htmlspecialchars($search_query) ?></strong>"
+        <?php else: ?>
+            Sin resultados para "<strong><?= htmlspecialchars($search_query) ?></strong>"
+        <?php endif; ?>
+        &nbsp;·&nbsp;<a href="catalogo.php<?= $categoria_id ? '?categoria=' . $categoria_id : ($categoria_parent_id ? '?categoria_parent=' . $categoria_parent_id : '') ?>">Limpiar búsqueda</a>
+    </div>
+    <?php endif; ?>
 
 
 
