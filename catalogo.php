@@ -151,7 +151,7 @@ if ($categoria_parent_id > 0) {
         $countStmt->close();
 
         // Obtener productos paginados
-        $stmt = $conn->prepare("SELECT * FROM producto WHERE categoria_id IN ($placeholders)$sCond ORDER BY nombre LIMIT ?, ?");
+        $stmt = $conn->prepare("SELECT * FROM producto WHERE categoria_id IN ($placeholders)$sCond ORDER BY destacado DESC, nombre ASC LIMIT ?, ?");
         if ($searchLike !== '') {
             $stmt->bind_param(str_repeat('i', count($subCatIds)) . 'ssii', ...array_merge($subCatIds, [$searchLike, $searchLike, $offset, $perPage]));
         } else {
@@ -175,7 +175,7 @@ if ($categoria_parent_id > 0) {
         $totalProducts = (int) ($cntRes['cnt'] ?? 0);
         $countStmt->close();
 
-        $stmt = $conn->prepare("SELECT * FROM producto WHERE categoria_id = ?$sCond ORDER BY nombre LIMIT ?, ?");
+        $stmt = $conn->prepare("SELECT * FROM producto WHERE categoria_id = ?$sCond ORDER BY destacado DESC, nombre ASC LIMIT ?, ?");
         if ($searchLike !== '') {
             $stmt->bind_param("issii", $categoria_parent_id, $searchLike, $searchLike, $offset, $perPage);
         } else {
@@ -200,7 +200,7 @@ if ($categoria_parent_id > 0) {
     $totalProducts = (int) ($cntRes['cnt'] ?? 0);
     $countStmt->close();
 
-    $stmt = $conn->prepare("SELECT * FROM producto WHERE categoria_id = ?$sCond ORDER BY nombre LIMIT ?, ?");
+    $stmt = $conn->prepare("SELECT * FROM producto WHERE categoria_id = ?$sCond ORDER BY destacado DESC, nombre ASC LIMIT ?, ?");
     if ($searchLike !== '') {
         $stmt->bind_param("issii", $categoria_id, $searchLike, $searchLike, $offset, $perPage);
     } else {
@@ -220,13 +220,13 @@ if ($categoria_parent_id > 0) {
         $totalProducts = (int) ($cntRes['cnt'] ?? 0);
         $cntStmt->close();
 
-        $stmt = $conn->prepare("SELECT * FROM producto WHERE nombre LIKE ? OR descripcion LIKE ? ORDER BY nombre LIMIT ?, ?");
+        $stmt = $conn->prepare("SELECT * FROM producto WHERE nombre LIKE ? OR descripcion LIKE ? ORDER BY destacado DESC, nombre ASC LIMIT ?, ?");
         $stmt->bind_param("ssii", $searchLike, $searchLike, $offset, $perPage);
     } else {
         $cntRes = $conn->query("SELECT COUNT(*) AS cnt FROM producto")->fetch_assoc();
         $totalProducts = (int) ($cntRes['cnt'] ?? 0);
 
-        $stmt = $conn->prepare("SELECT * FROM producto ORDER BY nombre LIMIT ?, ?");
+        $stmt = $conn->prepare("SELECT * FROM producto ORDER BY destacado DESC, nombre ASC LIMIT ?, ?");
         $stmt->bind_param("ii", $offset, $perPage);
     }
     $stmt->execute();

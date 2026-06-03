@@ -34,18 +34,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_activo']) && $
     }
 }
 
-$q    = 'SELECT p.*, c.nombre AS cat_nombre FROM producto p LEFT JOIN categoria c ON c.id = p.categoria_id ORDER BY p.id DESC LIMIT 500';
-$res  = $conn->query($q);
+$perPage    = 50;
+$page       = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
+$offset     = ($page - 1) * $perPage;
+
+$totalRows  = 0;
+$cntRes = $conn->query('SELECT COUNT(*) AS cnt FROM producto');
+if ($cntRes) {
+    $totalRows = (int) $cntRes->fetch_assoc()['cnt'];
+}
+$totalPages = (int) ceil($totalRows / $perPage);
+
+$st = $conn->prepare('SELECT p.*, c.nombre AS cat_nombre FROM producto p LEFT JOIN categoria c ON c.id = p.categoria_id ORDER BY p.id DESC LIMIT ? OFFSET ?');
 $rows = [];
-if ($res === false) {
-    error_log('[Admin/productos] query falló: ' . $conn->error);
-} else {
+if ($st) {
+    $st->bind_param('ii', $perPage, $offset);
+    $st->execute();
+    $res = $st->get_result();
     while ($row = $res->fetch_assoc()) {
         $rows[] = $row;
     }
+    $st->close();
+} else {
+    error_log('[Admin/productos] query falló: ' . $conn->error);
 }
-
-$umbralBajo = 5;
 
 require __DIR__ . '/includes/layout.php';
 ?>
@@ -108,4 +120,44 @@ require __DIR__ . '/includes/layout.php';
         </tbody>
     </table>
 </div>
+
+<?php if ($totalPages > 1): ?>
+<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:16px;justify-content:center;">
+    <?php
+    $pageBtn = function(int $n, int $cur) {
+        $cls  = $n === $cur ? 'btn-primary' : 'btn-ghost';
+        $aria = $n === $cur ? ' aria-current="page"' : '';
+        echo '<a href="?' . http_build_query(['page' => $n]) . '" class="btn btn-sm ' . $cls . '"' . $aria . '>' . $n . '</a>';
+    };
+
+    $window = 2;
+    $shown  = [];
+
+    $candidates = array_unique(array_filter([
+        1, 2, 3,
+        $page - 1, $page, $page + 1,
+        $totalPages - 2, $totalPages - 1, $totalPages,
+    ], fn($n) => $n >= 1 && $n <= $totalPages));
+    sort($candidates);
+
+    $prev = 0;
+    foreach ($candidates as $n) {
+        if ($prev && $n - $prev > 1) {
+            echo '<span style="padding:0 4px;color:#888;">…</span>';
+        }
+        $pageBtn($n, $page);
+        $prev = $n;
+    }
+    ?>
+
+    <form method="get" style="display:inline-flex;align-items:center;gap:6px;margin-left:10px;"
+          onsubmit="var v=parseInt(this.pg.value);if(v>=1&&v<=<?= $totalPages ?>){window.location='?page='+v;}return false;">
+        <input type="number" name="pg" min="1" max="<?= $totalPages ?>"
+               placeholder="Ir a…"
+               style="width:72px;padding:4px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;text-align:center;">
+        <button type="submit" class="btn btn-ghost btn-sm">Ir</button>
+    </form>
+</div>
+<?php endif; ?>
+
 <?php require __DIR__ . '/includes/layout_end.php'; ?>
