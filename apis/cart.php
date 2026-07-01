@@ -23,7 +23,7 @@ switch ($action) {
         $id     = (int)($_POST['id'] ?? 0);
         $nombre = mb_substr(trim($_POST['nombre'] ?? ''), 0, 255);
         $imagen = trim($_POST['imagen'] ?? '');
-        // Rechazar protocolos peligrosos en la URL de imagen
+        $precio = max(0, (float)($_POST['precio'] ?? 0));
         if (preg_match('/^\s*javascript:/i', $imagen)) {
             $imagen = '';
         }
@@ -42,6 +42,7 @@ switch ($action) {
                     'id'       => $id,
                     'nombre'   => $nombre,
                     'imagen'   => $imagen,
+                    'precio'   => $precio,
                     'cantidad' => 1,
                 ];
             }

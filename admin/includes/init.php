@@ -37,7 +37,7 @@ function admin_role_modules(): array
     return [
         'administrador' => null, // null = todos los módulos
         'vendedor' => [
-            'dashboard', 'ventas', 'clientes', 'analisis', 'reportes', 'promociones',
+            'dashboard', 'ventas', 'cotizaciones', 'clientes', 'analisis', 'reportes', 'promociones',
         ],
         'almacen' => [
             'dashboard', 'envios', 'inventario', 'productos', 'reportes',
@@ -142,9 +142,10 @@ function admin_table_exists(mysqli $conn, string $table): bool
 function admin_menu_items(): array
 {
     return [
-        ['id' => 'dashboard', 'module' => 'dashboard', 'label' => 'Dashboard', 'href' => 'index.php'],
-        ['id' => 'ventas', 'module' => 'ventas', 'label' => 'Ventas', 'href' => 'ventas.php'],
-        ['id' => 'envios', 'module' => 'envios', 'label' => 'Envíos', 'href' => 'envios.php'],
+        ['id' => 'dashboard',     'module' => 'dashboard',     'label' => 'Dashboard',     'href' => 'index.php'],
+        ['id' => 'ventas',        'module' => 'ventas',        'label' => 'Ventas',        'href' => 'ventas.php'],
+        ['id' => 'cotizaciones',  'module' => 'cotizaciones',  'label' => 'Cotizaciones',  'href' => 'cotizaciones.php'],
+        ['id' => 'envios',        'module' => 'envios',        'label' => 'Envíos',        'href' => 'envios.php'],
         ['id' => 'analisis', 'module' => 'analisis', 'label' => 'Análisis', 'href' => 'analisis.php'],
         ['id' => 'clientes', 'module' => 'clientes', 'label' => 'Clientes', 'href' => 'clientes.php'],
         ['id' => 'usuarios', 'module' => 'usuarios', 'label' => 'Usuarios', 'href' => 'usuarios.php'],
@@ -173,6 +174,9 @@ function admin_active_id(string $script): string
     }
     if (strpos($base, 'producto_edit.php') === 0) {
         return 'productos';
+    }
+    if (strpos($base, 'cotizacion_ver.php') === 0) {
+        return 'cotizaciones';
     }
     return 'dashboard';
 }

@@ -35,21 +35,12 @@ function getImageUrl($imagePath)
     $imagePath = str_replace('\\', '/', $imagePath);
     $imgTrim = ltrim($imagePath, '/');
 
-    // Si ya tiene prefijo Uploads/uploads, usar tal cual
-    if (stripos($imgTrim, 'uploads/') === 0 || stripos($imgTrim, 'Uploads/') === 0) {
-        // Usar image.php para servir la imagen local
-        $parts = explode('/', $imgTrim);
-        $encodedParts = array_map('rawurlencode', $parts);
-        $encodedPath = implode('/', $encodedParts);
-        return 'image.php?path=' . $encodedPath;
-    } else {
-        // Agregar prefijo Uploads/ si no lo tiene
-        $fullPath = 'Uploads/' . $imgTrim;
-        $parts = explode('/', $fullPath);
-        $encodedParts = array_map('rawurlencode', $parts);
-        $encodedPath = implode('/', $encodedParts);
-        return 'image.php?path=' . $encodedPath;
-    }
+    // Pasar la ruta tal cual a image.php — el script buscará en el webroot
+    // y también en Uploads/ como fallback (cubre src/img/..., Uploads/..., etc.)
+    $parts = explode('/', $imgTrim);
+    $encodedParts = array_map('rawurlencode', $parts);
+    $encodedPath = implode('/', $encodedParts);
+    return 'image.php?path=' . $encodedPath;
 }
 
 $categoria_id = isset($_GET['categoria']) ? (int) $_GET['categoria'] : 0;
@@ -2087,10 +2078,12 @@ function pageUrl($p)
                                 <div class="product-footer">
                                     <button class="btn btn-primary"
                                         onclick="openQuoteModal('<?= htmlspecialchars($producto['nombre'], ENT_QUOTES) ?>')">
-                                        Cotizar
+                                        Cotización individual
                                     </button>
-                                    <a class="btn btn-secondary"
-                                        href="producto.php?id=<?= (int)$producto['id'] ?>">Comprar</a>
+                                    <button class="btn btn-secondary"
+                                        onclick="addToCart(<?= (int)$producto['id'] ?>, '<?= htmlspecialchars($producto['nombre'], ENT_QUOTES) ?>', '<?= htmlspecialchars($imagenUrl, ENT_QUOTES) ?>', <?= number_format((float)($producto['precio'] ?? 0), 2, '.', '') ?>)">
+                                        Añadir al carrito
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -2514,6 +2507,52 @@ function pageUrl($p)
             const modal = document.getElementById('quoteModal');
             modal.classList.remove('active');
             document.body.style.overflow = 'auto';
+        }
+
+        function addToCart(id, nombre, imagen, precio) {
+            // 1. Mostrar alert/toast inmediatamente (no esperar al fetch)
+            if (!localStorage.getItem('ofi_cart_aviso')) {
+                Swal.fire({
+                    icon: 'info',
+                    title: '¡Producto añadido!',
+                    html: 'Se están añadiendo productos al carrito para <strong>solicitar una cotización conjunta</strong>.<br><br>Cuando termines, ve al carrito y haz clic en <strong>"Solicitar Cotización"</strong>.',
+                    confirmButtonText: 'Aceptar',
+                    confirmButtonColor: '#1e3a8a',
+                    showDenyButton: true,
+                    denyButtonText: 'No volver a mostrar',
+                    denyButtonColor: '#94a3b8',
+                }).then(result => {
+                    if (result.isDenied) {
+                        localStorage.setItem('ofi_cart_aviso', '1');
+                    }
+                });
+            } else {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: `"${nombre}" añadido al carrito`,
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true,
+                });
+            }
+
+            // 2. Agregar al carrito en segundo plano y actualizar el contador
+            fetch('apis/cart.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `action=add&id=${id}&nombre=${encodeURIComponent(nombre)}&imagen=${encodeURIComponent(imagen)}&precio=${precio ?? 0}`
+            })
+            .then(r => r.json())
+            .then(data => {
+                const badge = document.querySelector('.cart-badge-count');
+                if (badge) {
+                    badge.textContent = data.count;
+                    badge.style.display = data.count > 0 ? 'inline-flex' : 'none';
+                }
+            })
+            .catch(() => {/* silencioso — el alert ya se mostró */});
         }
 
         function openProductModal(name, description, image) {

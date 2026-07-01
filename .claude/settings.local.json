@@ -28,7 +28,15 @@
       "Bash(git push *)",
       "Read(//Users/zurisabdainunezvelazquez/Downloads/Proyectos/Precios/**)",
       "Bash(python3 -c ' *)",
-      "Bash(pip3 install *)"
+      "Bash(pip3 install *)",
+      "Read(//usr/local/mysql-9.2.0-macos15-arm64/bin/**)",
+      "Read(//opt/homebrew/bin/**)",
+      "Read(//Applications/MAMP/Library/bin/**)",
+      "Read(//Applications/XAMPP/xamppfiles/bin/**)",
+      "Bash(/usr/local/mysql/bin/mysql -u root -pCsnu88334 ofiequipo2)",
+      "Bash(/usr/local/mysql/bin/mysql -u root -pCsnu88334 ofiequipo2 -e \"DESCRIBE producto;\")",
+      "Bash(/usr/local/mysql/bin/mysql -u root -pCsnu88334 ofiequipo2 -e ' *)",
+      "Bash(mysql -uroot -pCsnu88334 ofiequipo2 -e \"SELECT id, nombre, imagen FROM producto LIMIT 5;\")"
     ]
   }
 }

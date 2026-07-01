@@ -65,30 +65,30 @@
         background:white;
     ">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-            <span style="font-size:14px;color:#475569;font-weight:500;">Total de artículos</span>
-            <span id="drawerTotal" style="font-size:16px;font-weight:700;color:#0f172a;">0</span>
+            <span style="font-size:13px;color:#64748b;font-weight:500;">Total de referencia</span>
+            <span id="drawerTotal" style="font-size:17px;font-weight:800;color:#1e3a8a;">—</span>
         </div>
-        <a href="carrito.php" style="
+        <a href="cotizacion.php" style="
             display:flex;align-items:center;justify-content:center;gap:8px;
             width:100%;padding:13px;margin-bottom:10px;
             background:linear-gradient(135deg,#1e3a8a 0%,#2563eb 100%);
-            color:white;border-radius:11px;font-size:15px;font-weight:600;
+            color:white;border-radius:11px;font-size:15px;font-weight:700;
             text-decoration:none;
             box-shadow:0 4px 14px rgba(37,99,235,0.3);
             transition:transform 0.15s,box-shadow 0.15s;
         " onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='none'">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V8l8 5 8-5v10zm-8-7L4 6h16l-8 5z"/></svg>
-            Proceder a hacer compra
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13zM8 13h8v2H8v-2zm0 4h5v2H8v-2zm0-8h3v2H8V9z"/></svg>
+            Cotizar
         </a>
-        <!--<a href="carrito.php" style="
-            display:flex;align-items:center;justify-content:center;gap:8px;
-            width:100%;padding:11px;
-            background:white;color:#1e3a8a;
-            border:2px solid #1e3a8a;border-radius:11px;
-            font-size:14px;font-weight:600;text-decoration:none;
-            transition:background 0.15s;
-        " onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='white'">
-            Ver carrito completo-->
+        <a href="carrito.php" style="
+            display:flex;align-items:center;justify-content:center;gap:6px;
+            width:100%;padding:10px;
+            background:white;color:#64748b;
+            border:1.5px solid #e2e8f0;border-radius:10px;
+            font-size:13px;font-weight:600;text-decoration:none;
+            transition:background 0.15s,color 0.15s;
+        " onmouseover="this.style.background='#f8fafc';this.style.color='#1e3a8a'" onmouseout="this.style.background='white';this.style.color='#64748b'">
+            Ver carrito completo
         </a>
     </div>
 </div>
@@ -210,12 +210,12 @@ function loadCartDrawer() {
 }
 
 function renderCartDrawer(data) {
-    const items     = data.cart  || [];
-    const count     = data.count || 0;
-    const isEmpty   = items.length === 0;
+    const items   = data.cart  || [];
+    const count   = data.count || 0;
+    const isEmpty = items.length === 0;
 
     document.getElementById('drawerCount').textContent = count;
-    document.getElementById('drawerTotal').textContent = count;
+    updateDrawerTotal(items);
 
     document.getElementById('drawerEmpty').style.display  = isEmpty ? 'flex' : 'none';
     document.getElementById('drawerFooter').style.display = isEmpty ? 'none' : 'block';
@@ -223,12 +223,19 @@ function renderCartDrawer(data) {
     const container = document.getElementById('drawerItems');
     if (isEmpty) { container.innerHTML = ''; return; }
 
-    container.innerHTML = items.map(item => `
-        <div class="drawer-item" id="ditem-${item.id}">
+    container.innerHTML = items.map(item => {
+        const precio = parseFloat(item.precio) || 0;
+        const sub    = precio * parseInt(item.cantidad || 1);
+        const precioHtml = precio > 0
+            ? `<div style="font-size:12px;color:#1e3a8a;font-weight:700;margin-top:4px;" id="dsub-${item.id}">$${sub.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>`
+            : '';
+        return `
+        <div class="drawer-item" id="ditem-${item.id}" data-precio="${precio}">
             <img class="drawer-item-img" src="${escHtml(item.imagen)}" alt="${escHtml(item.nombre)}">
             <div>
                 <div class="drawer-item-name">${escHtml(item.nombre)}</div>
-                <div class="drawer-qty">
+                ${precioHtml}
+                <div class="drawer-qty" style="margin-top:6px;">
                     <button class="drawer-qty-btn" onclick="drawerUpdateQty(${item.id}, -1)">−</button>
                     <span class="drawer-qty-val" id="dqty-${item.id}">${item.cantidad}</span>
                     <button class="drawer-qty-btn" onclick="drawerUpdateQty(${item.id}, 1)">+</button>
@@ -237,15 +244,37 @@ function renderCartDrawer(data) {
                     </button>
                 </div>
             </div>
-        </div>
-    `).join('');
+        </div>`;
+    }).join('');
+}
+
+function updateDrawerTotal(items) {
+    const totalEl = document.getElementById('drawerTotal');
+    if (!totalEl) return;
+    const total = (items || []).reduce((s, i) => s + (parseFloat(i.precio) || 0) * parseInt(i.cantidad || 1), 0);
+    totalEl.textContent = total > 0
+        ? '$' + total.toLocaleString('es-MX', {minimumFractionDigits:2, maximumFractionDigits:2})
+        : (items && items.length ? items.reduce((s, i) => s + parseInt(i.cantidad || 1), 0) + ' art.' : '—');
 }
 
 function drawerUpdateQty(id, delta) {
-    const el  = document.getElementById('dqty-' + id);
-    const qty = Math.max(1, parseInt(el.textContent) + delta);
+    const el    = document.getElementById('dqty-' + id);
+    const qty   = Math.max(1, parseInt(el.textContent) + delta);
     el.textContent = qty;
-    cartPost(`action=update&id=${id}&cantidad=${qty}`).then(d => syncBadges(d.count));
+
+    // Actualizar subtotal de la fila inmediatamente
+    const row   = document.getElementById('ditem-' + id);
+    const precio = row ? parseFloat(row.dataset.precio) || 0 : 0;
+    const subEl = document.getElementById('dsub-' + id);
+    if (subEl && precio > 0) {
+        const sub = precio * qty;
+        subEl.textContent = '$' + sub.toLocaleString('es-MX', {minimumFractionDigits:2, maximumFractionDigits:2});
+    }
+
+    cartPost(`action=update&id=${id}&cantidad=${qty}`).then(d => {
+        syncBadges(d.count);
+        updateDrawerTotal(d.cart);
+    });
 }
 
 function drawerRemove(id) {
@@ -270,7 +299,7 @@ function drawerRemove(id) {
         req.then(d => {
             syncBadges(d.count);
             document.getElementById('drawerCount').textContent = d.count;
-            document.getElementById('drawerTotal').textContent = d.count;
+            updateDrawerTotal(d.cart);
             if (d.count === 0) {
                 document.getElementById('drawerEmpty').style.display  = 'flex';
                 document.getElementById('drawerFooter').style.display = 'none';

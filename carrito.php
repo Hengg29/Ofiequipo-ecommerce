@@ -19,7 +19,7 @@ function getImageUrl($imagePath) {
 // Si viene con ?quote=id, agregar ese producto al carrito
 if (!empty($_GET['quote'])) {
     $qId = (int)$_GET['quote'];
-    $qStmt = $conn->prepare("SELECT id, nombre, imagen FROM producto WHERE id = ?");
+    $qStmt = $conn->prepare("SELECT id, nombre, imagen, precio FROM producto WHERE id = ?");
     $qStmt->bind_param('i', $qId);
     $qStmt->execute();
     $qProd = $qStmt->get_result()->fetch_assoc();
@@ -32,7 +32,13 @@ if (!empty($_GET['quote'])) {
         }
         unset($item);
         if (!$found) {
-            $_SESSION['cart'][] = ['id'=>$qId,'nombre'=>$qProd['nombre'],'imagen'=>getImageUrl($qProd['imagen']??''),'cantidad'=>1];
+            $_SESSION['cart'][] = [
+                'id'      => $qId,
+                'nombre'  => $qProd['nombre'],
+                'imagen'  => getImageUrl($qProd['imagen'] ?? ''),
+                'precio'  => (float)$qProd['precio'],
+                'cantidad'=> 1,
+            ];
         }
     }
 }
@@ -40,6 +46,7 @@ if (!empty($_GET['quote'])) {
 $cart      = $_SESSION['cart'] ?? [];
 $cartCount = array_sum(array_column($cart, 'cantidad'));
 $isEmpty   = empty($cart);
+$totalRef  = array_sum(array_map(fn($i) => (float)($i['precio'] ?? 0) * (int)($i['cantidad'] ?? 1), $cart));
 
 // Header vars
 $search_query  = '';
@@ -411,35 +418,32 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
             border-radius: 8px; border: 1px solid var(--cart-border);
         }
 
-        /* ── Quote modal ─────────────────────────────────────── */
-        .modal-overlay {
-            display: none; position: fixed; inset: 0;
-            background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
-            z-index: 1200; align-items: center; justify-content: center; padding: 20px;
+        /* ── Precio por item ─────────────────────────────────── */
+        .cart-item-price {
+            text-align: right;
+            padding-left: 16px;
+            flex-shrink: 0;
         }
-        .modal-overlay.active { display: flex; }
-        .modal-box {
-            background: white; border-radius: 18px;
-            max-width: 520px; width: 100%;
-            max-height: 90vh; overflow-y: auto;
-            box-shadow: 0 25px 60px rgba(0,0,0,0.2);
-            animation: modalIn 0.25s ease;
+        .cart-item-price .price-sub {
+            font-size: 16px; font-weight: 800; color: var(--cart-navy);
+            white-space: nowrap;
         }
-        @keyframes modalIn { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
-        .modal-header {
-            padding: 22px 28px 18px;
-            border-bottom: 1px solid var(--cart-border);
+        .cart-item-price .price-unit {
+            font-size: 11px; color: var(--cart-light); margin-top: 2px;
+            white-space: nowrap;
+        }
+
+        /* ── Total referencia en sidebar ─────────────────────── */
+        .summary-ref-total {
             display: flex; justify-content: space-between; align-items: center;
+            background: #eff6ff; border: 1px solid #bfdbfe;
+            border-radius: 10px; padding: 12px 16px;
+            margin-bottom: 18px;
         }
-        .modal-header h3 { font-size: 18px; font-weight: 800; color: var(--cart-dark); }
-        .modal-close-btn {
-            background: #f1f5f9; border: none; width: 32px; height: 32px;
-            border-radius: 8px; font-size: 18px; color: var(--cart-gray);
-            cursor: pointer; display: flex; align-items: center; justify-content: center;
-            transition: background 0.15s;
-        }
-        .modal-close-btn:hover { background: #e2e8f0; color: var(--cart-dark); }
-        .modal-body { padding: 24px 28px 28px; }
+        .summary-ref-total span { font-size: 13px; color: #1e40af; font-weight: 600; }
+        .summary-ref-total strong { font-size: 18px; color: var(--cart-navy); font-weight: 800; }
+
+        /* ── Placeholder para cuando no hay CSS de modal ─────── */
         .form-group { margin-bottom: 16px; }
         .form-group label {
             display: block; font-size: 13px; font-weight: 600;
@@ -468,6 +472,7 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
             .cart-page { padding: 24px 16px 60px; }
             .cart-item { grid-template-columns: 72px 1fr; padding: 16px 20px; }
             .cart-item-img { width: 72px; height: 72px; }
+            .cart-item-price { display: none; }
         }
     </style>
 </head>
@@ -652,16 +657,21 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
                 <div class="cart-items-card">
                     <div class="cart-items-head">
                         <div class="cart-items-head-label">
-                            Productos
+                            Productos a cotizar
                             <span class="count-pill"><?= count($cart) ?></span>
                         </div>
                         <a href="catalogo.php" class="cart-items-head-back">
-                            ← Seguir comprando
+                            ← Agregar más productos
                         </a>
                     </div>
 
-                    <?php foreach ($cart as $item): ?>
-                    <div class="cart-item" id="item-<?= (int)$item['id'] ?>">
+                    <?php foreach ($cart as $item):
+                        $precio = (float)($item['precio'] ?? 0);
+                        $sub    = $precio * (int)($item['cantidad'] ?? 1);
+                    ?>
+                    <div class="cart-item" id="item-<?= (int)$item['id'] ?>"
+                         data-precio="<?= number_format($precio, 2, '.', '') ?>"
+                         data-id="<?= (int)$item['id'] ?>">
                         <img class="cart-item-img"
                              src="<?= htmlspecialchars($item['imagen']) ?>"
                              alt="<?= htmlspecialchars($item['nombre']) ?>">
@@ -671,7 +681,6 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
                                     <?= htmlspecialchars($item['nombre']) ?>
                                 </a>
                             </div>
-                            <div class="cart-item-category">Mobiliario de oficina</div>
                             <div class="cart-item-controls">
                                 <button class="qty-btn" onclick="updateQty(<?= (int)$item['id'] ?>, -1)">−</button>
                                 <span class="qty-val" id="qty-<?= (int)$item['id'] ?>"><?= (int)$item['cantidad'] ?></span>
@@ -682,6 +691,14 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
                                 </button>
                             </div>
                         </div>
+                        <?php if ($precio > 0): ?>
+                        <div class="cart-item-price">
+                            <div class="price-sub" id="sub-<?= (int)$item['id'] ?>">$<?= number_format($sub, 2) ?></div>
+                            <?php if ((int)$item['cantidad'] > 1): ?>
+                            <div class="price-unit">$<?= number_format($precio, 2) ?> c/u</div>
+                            <?php endif; ?>
+                        </div>
+                        <?php endif; ?>
                     </div>
                     <?php endforeach; ?>
                 </div>
@@ -689,12 +706,12 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
                 <!-- Summary sidebar -->
                 <aside class="cart-summary">
                     <div class="summary-head">
-                        <div class="summary-head-title">Resumen del pedido</div>
-                        <div class="summary-head-sub">Te contactaremos para confirmar disponibilidad</div>
+                        <div class="summary-head-title">Resumen de cotización</div>
+                        <div class="summary-head-sub">Confirmaremos precios y disponibilidad</div>
                     </div>
                     <div class="summary-body">
                         <div class="summary-row">
-                            <span>Tipos de producto</span>
+                            <span>Productos distintos</span>
                             <strong id="summaryCount"><?= count($cart) ?></strong>
                         </div>
                         <div class="summary-row">
@@ -704,14 +721,16 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
 
                         <hr class="summary-divider">
 
-                        <div class="summary-total-row">
-                            <span>Total artículos</span>
-                            <span id="summaryTotal"><?= $cartCount ?></span>
+                        <?php if ($totalRef > 0): ?>
+                        <div class="summary-ref-total">
+                            <span>Total de referencia</span>
+                            <strong id="summaryRefTotal">$<?= number_format($totalRef, 2) ?></strong>
                         </div>
+                        <?php endif; ?>
 
-                        <a href="datos.php" class="btn-quote-all">
-                            <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V8l8 5 8-5v10zm-8-7L4 6h16l-8 5z"/></svg>
-                            Proceder al pago
+                        <a href="cotizacion.php" class="btn-quote-all">
+                            <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13zM8 13h8v2H8v-2zm0 4h5v2H8v-2zm0-8h3v2H8V9z"/></svg>
+                            Solicitar Cotización
                         </a>
 
                         <button class="btn-clear-cart" onclick="clearCart()">
@@ -720,7 +739,7 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
                         </button>
 
                         <p class="summary-note">
-                            Nos pondremos en contacto para coordinar disponibilidad, entrega y cualquier detalle adicional.
+                            Los precios son de catálogo y pueden variar. Te confirmaremos el precio final por correo o WhatsApp.
                         </p>
                     </div>
                 </aside>
@@ -728,55 +747,21 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
         <?php endif; ?>
     </main>
 
-    <!-- Quote Modal -->
-    <div class="modal-overlay" id="quoteModal">
-        <div class="modal-box">
-            <div class="modal-header">
-                <h3>Solicitar Cotización</h3>
-                <button class="modal-close-btn" onclick="closeQuoteModal()">✕</button>
-            </div>
-            <div class="modal-body">
-                <form action="https://formsubmit.co/soniaanaya@ofiequipo.com.mx" method="POST" target="_blank">
-                    <input type="hidden" name="_subject" value="Nueva Cotización desde Carrito — Ofiequipo">
-                    <input type="hidden" name="_captcha" value="false">
-                    <input type="hidden" name="_template" value="table">
-                    <input type="hidden" name="Productos" id="hiddenProducts">
-
-                    <div class="form-group">
-                        <label>Nombre Completo</label>
-                        <input type="text" name="nombre" placeholder="Tu nombre completo" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Correo Electrónico</label>
-                        <input type="email" name="email" placeholder="tucorreo@ejemplo.com" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Teléfono</label>
-                        <input type="tel" name="telefono" placeholder="Tu número de teléfono">
-                    </div>
-                    <div class="form-group">
-                        <label>Productos a cotizar</label>
-                        <textarea name="productos_lista" id="productosList" readonly></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>Comentarios adicionales</label>
-                        <textarea name="comentarios" placeholder="Preguntas, especificaciones, cantidades adicionales..."></textarea>
-                    </div>
-
-                    <button type="submit" class="btn-quote-all" style="margin-top:8px">
-                        <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-                        Enviar Solicitud
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-
     <script>
         function updateQty(id, delta) {
             const qtyEl  = document.getElementById('qty-' + id);
             const newQty = Math.max(1, parseInt(qtyEl.textContent) + delta);
             qtyEl.textContent = newQty;
+
+            // Actualizar subtotal de la fila inmediatamente
+            const row    = document.getElementById('item-' + id);
+            const precio = row ? parseFloat(row.dataset.precio) || 0 : 0;
+            const subEl  = document.getElementById('sub-' + id);
+            if (subEl && precio > 0) {
+                const sub = precio * newQty;
+                subEl.textContent = '$' + sub.toLocaleString('es-MX', {minimumFractionDigits:2, maximumFractionDigits:2});
+            }
+
             fetch('apis/cart.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -813,35 +798,27 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
         }
 
         function refreshSummary(data) {
-            const count = data.cart ? data.cart.length : 0;
+            const cartItems = data.cart || [];
+            const count = cartItems.length;
             const units = data.count || 0;
             document.getElementById('summaryCount').textContent = count;
             document.getElementById('summaryUnits').textContent = units;
-            document.getElementById('summaryTotal').textContent = units;
-        }
 
-        function openQuoteModal() {
-            let list = '';
-            document.querySelectorAll('.cart-item:not(.removing)').forEach(item => {
-                const name = item.querySelector('.cart-item-name').textContent.trim();
-                const qty  = item.querySelector('.qty-val').textContent.trim();
-                list += `${name} (x${qty})\n`;
+            // Recalcular total de referencia y subtotales por item
+            let totalRef = 0;
+            cartItems.forEach(item => {
+                const precio = parseFloat(item.precio) || 0;
+                const qty    = parseInt(item.cantidad) || 1;
+                const sub    = precio * qty;
+                totalRef += sub;
+
+                const subEl = document.getElementById('sub-' + item.id);
+                if (subEl) subEl.textContent = '$' + sub.toLocaleString('es-MX', {minimumFractionDigits:2, maximumFractionDigits:2});
             });
-            document.getElementById('productosList').value = list;
-            document.getElementById('hiddenProducts').value = list;
-            document.getElementById('quoteModal').classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }
 
-        function closeQuoteModal() {
-            document.getElementById('quoteModal').classList.remove('active');
-            document.body.style.overflow = '';
+            const refEl = document.getElementById('summaryRefTotal');
+            if (refEl) refEl.textContent = '$' + totalRef.toLocaleString('es-MX', {minimumFractionDigits:2, maximumFractionDigits:2});
         }
-
-        document.getElementById('quoteModal').addEventListener('click', function(e) {
-            if (e.target === this) closeQuoteModal();
-        });
-        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeQuoteModal(); });
 
         // ── Navbar JS ─────────────────────────────────────────────
         document.addEventListener('DOMContentLoaded', function () {

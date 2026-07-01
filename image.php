@@ -109,14 +109,15 @@ if (isset($_GET['u']) && !empty($_GET['u'])) {
         }
     }
     
-    // Si no se pudo obtener la imagen externa, devolver 404 con información útil
+    // Si no se pudo obtener la imagen externa, devolver placeholder SVG
     while (ob_get_level()) {
         ob_end_clean();
     }
-    http_response_code(404);
-    header('Content-Type: text/plain; charset=utf-8', true);
-    // En producción, no mostrar la URL completa por seguridad
-    die('Imagen externa no disponible');
+    $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300"><rect width="300" height="300" fill="#f1f5f9"/><rect x="90" y="80" width="120" height="90" rx="8" fill="#cbd5e1"/><circle cx="115" cy="105" r="12" fill="#94a3b8"/><polyline points="90,170 130,130 160,155 190,120 210,170" fill="none" stroke="#94a3b8" stroke-width="6" stroke-linejoin="round"/><text x="150" y="210" font-family="sans-serif" font-size="13" fill="#94a3b8" text-anchor="middle">Sin imagen</text></svg>';
+    header('Content-Type: image/svg+xml', true);
+    header('Cache-Control: no-cache', true);
+    echo $svg;
+    exit;
 }
 
 // Obtener la ruta de la imagen desde el parámetro 'path'
@@ -155,19 +156,19 @@ $possiblePaths = [];
 // Preservar espacios en nombres de archivos y carpetas, solo trim al inicio/final de la ruta completa
 $imagePath = trim($imagePath);
 
-// Si ya tiene prefijo Uploads/uploads, intentar tal cual
+// Intentar primero la ruta tal cual desde el webroot, luego con prefijo Uploads/
+// Esto cubre rutas como src/img/..., Uploads/..., uploads/..., etc.
 if (stripos($imagePath, 'uploads/') === 0) {
-    // Intentar con el caso exacto primero
     $possiblePaths[] = $baseDir . '/' . $imagePath;
-    // Intentar con diferentes casos
     $parts = explode('/', $imagePath, 2);
     if (isset($parts[1])) {
-        // Preservar espacios en nombres de archivos y carpetas
         $possiblePaths[] = $baseDir . '/Uploads/' . $parts[1];
         $possiblePaths[] = $baseDir . '/uploads/' . $parts[1];
     }
 } else {
-    // Agregar prefijo Uploads con diferentes casos
+    // Ruta webroot-relativa (ej: src/img/...) — probar directa primero
+    $possiblePaths[] = $baseDir . '/' . $imagePath;
+    // Luego con prefijo Uploads/ por compatibilidad con rutas sin directorio
     $possiblePaths[] = $baseDir . '/Uploads/' . $imagePath;
     $possiblePaths[] = $baseDir . '/uploads/' . $imagePath;
 }
@@ -245,12 +246,39 @@ if (!$fullPath) {
 
 // Verificar que el archivo existe
 if (!$fullPath) {
+    // Intentar obtener la imagen desde el servidor de producción
+    $prodUrl = 'https://ofiequipo.com.mx/oe/' . $imagePath;
+    $context = stream_context_create([
+        'http' => [
+            'method'          => 'GET',
+            'header'          => ['User-Agent: Mozilla/5.0'],
+            'timeout'         => 8,
+            'follow_location' => true,
+            'max_redirects'   => 3,
+        ],
+        'ssl' => ['verify_peer' => false, 'verify_peer_name' => false],
+    ]);
+    $imageData = @file_get_contents($prodUrl, false, $context);
+    if ($imageData !== false && strlen($imageData) > 0) {
+        $ext      = strtolower(pathinfo(parse_url($prodUrl, PHP_URL_PATH), PATHINFO_EXTENSION));
+        $mimeMap  = ['jpg'=>'image/jpeg','jpeg'=>'image/jpeg','png'=>'image/png','gif'=>'image/gif','webp'=>'image/webp','svg'=>'image/svg+xml'];
+        $mime     = $mimeMap[$ext] ?? 'image/jpeg';
+        while (ob_get_level()) ob_end_clean();
+        header('Content-Type: ' . $mime, true);
+        header('Content-Length: ' . strlen($imageData), true);
+        header('Cache-Control: public, max-age=86400', true);
+        echo $imageData;
+        exit;
+    }
+
     while (ob_get_level()) {
         ob_end_clean();
     }
-    http_response_code(404);
-    header('Content-Type: text/plain; charset=utf-8', true);
-    die('Imagen no encontrada.');
+    $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300"><rect width="300" height="300" fill="#f1f5f9"/><rect x="90" y="80" width="120" height="90" rx="8" fill="#cbd5e1"/><circle cx="115" cy="105" r="12" fill="#94a3b8"/><polyline points="90,170 130,130 160,155 190,120 210,170" fill="none" stroke="#94a3b8" stroke-width="6" stroke-linejoin="round"/><text x="150" y="210" font-family="sans-serif" font-size="13" fill="#94a3b8" text-anchor="middle">Sin imagen</text></svg>';
+    header('Content-Type: image/svg+xml', true);
+    header('Cache-Control: no-cache', true);
+    echo $svg;
+    exit;
 }
 
 // Obtener información del archivo
