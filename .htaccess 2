@@ -1,0 +1,10 @@
+# Bloquear acceso a archivos de log y configuración sensible
+<Files "mail_debug.log">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+<Files ".env">
+    Order Allow,Deny
+    Deny from all
+</Files>

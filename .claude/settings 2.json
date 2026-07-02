@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php -r ' *)",
+      "Bash(php -l /Users/hengg/Documents/OfieEquipoV2/mis_pedidos.php)",
+      "Bash(php -l /Users/hengg/Documents/OfieEquipoV2/apis/paypal_capture.php)",
+      "Bash(php -l /Users/hengg/Documents/OfieEquipoV2/admin/includes/layout.php)",
+      "Bash(php -l /Users/hengg/Documents/OfieEquipoV2/admin/includes/init.php)",
+      "Bash(php -l /Users/hengg/Documents/OfieEquipoV2/admin/index.php)",
+      "Bash(grep -rn 'badge.*estado\\|estado.*badge\\|$o\\['estado'\\]\\|$p\\['estado'\\]\\|$v\\['estado'\\]\\|$row\\['estado'\\]\\|$ped\\['estado'\\]' '/Users/hengg/Documents/OfieEquipoV2/admin/*.php')",
+      "Bash(php -l admin/ventas.php)",
+      "Bash(php -l admin/envios.php)",
+      "Bash(php -l admin/venta.php)",
+      "Bash(php -l admin/cliente.php)",
+      "Bash(php -l /Users/hengg/Documents/OfieEquipoV2/datos.php)",
+      "Bash(python3 -c ' *)",
+      "Bash(python3 generar_sql.py)",
+      "Bash(git commit -m ' *)",
+      "Bash(grep -rn '$conn->query' /Users/hengg/Documents/OfieEquipoV2/admin/)",
+      "Bash(grep -rn '$conn->query\\(' /Users/hengg/Documents/OfieEquipoV2/admin/)",
+      "Bash(grep '$_')",
+      "Bash(grep '\\\\$_')",
+      "Bash(git -C /Users/hengg/Documents/OfieEquipoV2 ls-files)",
+      "Bash(php -l /Users/hengg/Documents/OfieEquipoV2/pago.php)",
+      "Bash(php -l /Users/hengg/Documents/OfieEquipoV2/confirmacion.php)",
+      "Bash(php -l /Users/hengg/Documents/OfieEquipoV2/carrito.php)",
+      "Bash(php -l /Users/hengg/Documents/OfieEquipoV2/apis/stripe_capture.php)",
+      "Bash(php -l /Users/hengg/Documents/OfieEquipoV2/admin/productos.php)"
+    ],
+    "additionalDirectories": [
+      "/Users/zurisabdainunezvelazquez/Downloads/Proyectos/Precios"
+    ]
+  }
+}

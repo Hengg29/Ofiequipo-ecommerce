@@ -9,10 +9,10 @@ if (file_exists($envFile)) {
     }
 }
 
-$host   = $_ENV['DB_HOST'] ?? 'localhost';
-$user   = $_ENV['DB_USER'] ?? 'root';
-$pass   = $_ENV['DB_PASS'] ?? 'Csnu88334';
-$dbname = $_ENV['DB_NAME'] ?? 'ofiequipo2';
+$host   = $_ENV['DB_HOST'] ?? DB_HOST;
+$user   = $_ENV['DB_USER'] ?? DB_USER;
+$pass   = $_ENV['DB_PASS'] ?? DB_PASS;
+$dbname = $_ENV['DB_NAME'] ?? DB_NAME;
 
 $conn = new mysqli($host, $user, $pass, $dbname);
 

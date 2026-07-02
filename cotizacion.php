@@ -145,6 +145,29 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
         .field-error { font-size: 12px; color: #dc2626; margin-top: 5px; display: none; }
         .field-error.show { display: block; }
 
+        /* Location button */
+        .btn-location {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 10px 18px;
+            background: white; color: #1e3a8a;
+            border: 1.5px solid #1e3a8a; border-radius: 10px;
+            font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer;
+            transition: background 0.15s, box-shadow 0.15s;
+            margin-bottom: 20px;
+        }
+        .btn-location:hover { background: #eff6ff; box-shadow: 0 2px 8px rgba(30,58,138,0.12); }
+        .btn-location.loading { opacity: 0.6; pointer-events: none; }
+        .btn-location svg { width: 16px; height: 16px; fill: #1e3a8a; flex-shrink: 0; }
+        .location-note { font-size: 12px; color: #94a3b8; margin-bottom: 20px; margin-top: -12px; }
+        .location-ok {
+            display: none; align-items: center; gap: 6px;
+            font-size: 12px; color: #16a34a; font-weight: 600;
+            background: #dcfce7; border-radius: 8px; padding: 8px 12px;
+            margin-bottom: 16px;
+        }
+        .location-ok.show { display: flex; }
+        .location-ok svg { width: 14px; height: 14px; fill: #16a34a; }
+
         /* Global error alert */
         .alert-error {
             background: #fef2f2; border: 1.5px solid #fca5a5; border-radius: 12px;
@@ -403,6 +426,18 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
                         </div>
                         <div class="form-card-body">
 
+                            <!-- Location button -->
+                            <button type="button" class="btn-location" id="btnLocation" onclick="useMyLocation()">
+                                <svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06z"/></svg>
+                                Usar mi ubicación actual
+                            </button>
+                            <p class="location-note">Se usará tu GPS para llenar los campos automáticamente. Puedes editarlos después.</p>
+
+                            <div class="location-ok" id="locationOk">
+                                <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                                ¡Ubicación detectada! Revisa y ajusta si es necesario.
+                            </div>
+
                             <div class="form-group">
                                 <label for="dir_calle">Calle y número *</label>
                                 <input type="text" id="dir_calle" name="dir_calle"
@@ -540,6 +575,69 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
     </main>
 
     <script>
+    // ── Geolocalización ──────────────────────────────────────────────
+    function useMyLocation() {
+        if (!navigator.geolocation) {
+            alert('Tu navegador no soporta geolocalización.');
+            return;
+        }
+        const btn = document.getElementById('btnLocation');
+        btn.classList.add('loading');
+        btn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="#1e3a8a" style="animation:spin 1s linear infinite"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 14.68 20 13.39 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 9.32 4 11.1 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg> Obteniendo ubicación...`;
+
+        navigator.geolocation.getCurrentPosition(
+            function(pos) {
+                const lat = pos.coords.latitude;
+                const lon = pos.coords.longitude;
+                fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=es`)
+                    .then(r => r.json())
+                    .then(data => {
+                        const a = data.address || {};
+                        const street = [a.road || a.pedestrian || '', a.house_number || ''].filter(Boolean).join(' ');
+                        const colonia = a.suburb || a.neighbourhood || a.quarter || a.city_district || '';
+                        const ciudad  = a.city || a.town || a.municipality || a.village || '';
+                        const cp      = (a.postcode || '').replace(/[^0-9]/g,'').slice(0,5);
+
+                        document.getElementById('dir_calle').value   = street;
+                        document.getElementById('dir_colonia').value = colonia;
+                        document.getElementById('dir_cp').value      = cp;
+
+                        const norm = s => (s || '').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
+                        const select = document.getElementById('dir_municipio');
+                        const match  = Array.from(select.options).find(o => o.value && norm(o.value) === norm(ciudad));
+                        if (match) {
+                            select.value = match.value;
+                        } else {
+                            select.value = 'Otro';
+                            if (ciudad) {
+                                const refs = document.getElementById('dir_refs');
+                                refs.value = refs.value ? refs.value : ciudad;
+                            }
+                        }
+
+                        document.getElementById('locationOk').classList.add('show');
+                        resetLocationBtn();
+                    })
+                    .catch(() => {
+                        alert('No se pudo obtener la dirección. Intenta de nuevo.');
+                        resetLocationBtn();
+                    });
+            },
+            function(err) {
+                const msgs = { 1:'Permiso denegado. Activa la ubicación en tu navegador.', 2:'Ubicación no disponible.', 3:'Tiempo de espera agotado.' };
+                alert(msgs[err.code] || 'Error al obtener ubicación.');
+                resetLocationBtn();
+            },
+            { timeout: 10000, enableHighAccuracy: true }
+        );
+    }
+
+    function resetLocationBtn() {
+        const btn = document.getElementById('btnLocation');
+        btn.classList.remove('loading');
+        btn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="#1e3a8a"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06z"/></svg> Usar mi ubicación actual`;
+    }
+
     // ── Validación en tiempo real ───────────────────────────────────
     const rules = {
         nombre:   v => v.trim().length >= 2,
