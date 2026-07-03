@@ -44,6 +44,7 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     <style>
         /* ── Navbar ──────────────────────────────────────────────── */
         .promo-banner p { color: white !important; margin: 0; }
@@ -574,6 +575,7 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
         </div>
     </main>
 
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
     // ── Geolocalización ──────────────────────────────────────────────
     function useMyLocation() {
@@ -604,7 +606,10 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
 
                         const norm = s => (s || '').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
                         const select = document.getElementById('dir_municipio');
-                        const match  = Array.from(select.options).find(o => o.value && norm(o.value) === norm(ciudad));
+                        let match  = Array.from(select.options).find(o => o.value && norm(o.value) === norm(ciudad));
+                        if (!match && norm(ciudad) === 'madero') {
+                            match = Array.from(select.options).find(o => o.value && norm(o.value) === 'ciudad madero');
+                        }
                         if (match) {
                             select.value = match.value;
                         } else {
@@ -615,17 +620,22 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
                             }
                         }
 
+                        validateMunicipio();
+                        if (!isMunicipioAllowed(select.value)) {
+                            showSwalAlert('Solo se permite cotización en Tampico, Altamira o Ciudad Madero. Tu ubicación actual no está en la zona de servicio.');
+                        }
+
                         document.getElementById('locationOk').classList.add('show');
                         resetLocationBtn();
                     })
                     .catch(() => {
-                        alert('No se pudo obtener la dirección. Intenta de nuevo.');
+                        showSwalAlert('No se pudo obtener la dirección. Intenta de nuevo.');
                         resetLocationBtn();
                     });
             },
             function(err) {
                 const msgs = { 1:'Permiso denegado. Activa la ubicación en tu navegador.', 2:'Ubicación no disponible.', 3:'Tiempo de espera agotado.' };
-                alert(msgs[err.code] || 'Error al obtener ubicación.');
+                showSwalAlert(msgs[err.code] || 'Error al obtener ubicación.');
                 resetLocationBtn();
             },
             { timeout: 10000, enableHighAccuracy: true }
@@ -649,6 +659,46 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
         email:    'Ingresa un correo electrónico válido.',
         telefono: 'El teléfono debe tener al menos 10 dígitos.',
     };
+    const allowedMunicipios = ['tampico', 'altamira', 'ciudad madero', 'madero'];
+
+    function isMunicipioAllowed(value) {
+        return allowedMunicipios.includes((value || '').trim().toLowerCase());
+    }
+
+    function showSwalAlert(message) {
+        if (typeof Swal === 'undefined') {
+            alert(message);
+            return;
+        }
+        Swal.fire({
+            icon: 'error',
+            title: '¡Atención!',
+            text: message,
+            confirmButtonText: 'Aceptar',
+            confirmButtonColor: '#1e3a8a',
+            background: '#ffffff',
+            color: '#0f172a'
+        });
+    }
+
+    function validateMunicipio() {
+        const municipio = document.getElementById('dir_municipio');
+        const municipioError = document.getElementById('err-dir_municipio');
+        if (!municipio || !municipioError) return true;
+
+        const ok = isMunicipioAllowed(municipio.value);
+        municipio.classList.toggle('is-valid', ok);
+        municipio.classList.toggle('is-invalid', !ok);
+
+        if (ok) {
+            municipioError.classList.remove('show');
+            municipioError.textContent = 'Selecciona el municipio.';
+        } else {
+            municipioError.textContent = 'Solo se permite cotización en Tampico, Altamira o Ciudad Madero.';
+            municipioError.classList.add('show');
+        }
+        return ok;
+    }
 
     function validateField(id) {
         const input = document.getElementById(id);
@@ -671,14 +721,26 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
         });
     });
 
+    const municipioEl = document.getElementById('dir_municipio');
+    if (municipioEl) {
+        municipioEl.addEventListener('change', validateMunicipio);
+    }
+
     // ── Envío del formulario ────────────────────────────────────────
     document.getElementById('cotForm').addEventListener('submit', function(e) {
         const fields = ['nombre','email','telefono'];
         let valid = true;
         fields.forEach(id => { if (!validateField(id)) valid = false; });
 
-        if (!valid) {
+        const municipio = document.getElementById('dir_municipio');
+        const municipioError = document.getElementById('err-dir_municipio');
+        if (!validateMunicipio()) {
+            valid = false;
             e.preventDefault();
+            showSwalAlert('Solo se permite cotización en Tampico, Altamira o Ciudad Madero. Si tu ubicación es otra, por favor contáctanos.');
+        }
+
+        if (!valid) {
             const firstErr = document.querySelector('.is-invalid');
             if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
             return;

@@ -42,6 +42,8 @@ if (strlen($dir_calle) < 3)
     $errors['dir_calle']     = 'Ingresa la calle y número.';
 if (empty($dir_municipio))
     $errors['dir_municipio'] = 'Selecciona el municipio.';
+elseif (!in_array($dir_municipio, ['Tampico', 'Altamira', 'Ciudad Madero', 'Madero'], true))
+    $errors['dir_municipio'] = 'Solo se permite Tampico, Altamira o Ciudad Madero.';
 
 if (!empty($errors)) {
     $_SESSION['cot_errors'] = $errors;
