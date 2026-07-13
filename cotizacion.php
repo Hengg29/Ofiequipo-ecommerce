@@ -4,15 +4,13 @@ require_once __DIR__ . '/apis/db.php';
 require_once __DIR__ . '/includes/require_login.php';
 
 function getImageUrl($p) {
-    if (empty($p)) return 'https://via.placeholder.com/80x80?text=Sin+imagen';
+    if (empty($p)) return 'image.php?path=placeholder';
     $p = trim($p);
     if (preg_match('/^https?:\/\//i', $p)) return 'image.php?u=' . rawurlencode($p);
     if (filter_var($p, FILTER_VALIDATE_URL))  return 'image.php?u=' . rawurlencode($p);
     $p = str_replace('\\', '/', $p);
     $t = ltrim($p, '/');
-    if (stripos($t, 'uploads/') === 0)
-        return 'image.php?path=' . implode('/', array_map('rawurlencode', explode('/', $t)));
-    return 'image.php?path=' . implode('/', array_map('rawurlencode', explode('/', 'Uploads/' . $t)));
+    return 'image.php?path=' . implode('/', array_map('rawurlencode', explode('/', $t)));
 }
 
 $cart      = $_SESSION['cart'] ?? [];

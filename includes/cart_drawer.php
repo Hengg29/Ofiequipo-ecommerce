@@ -308,10 +308,28 @@ function drawerRemove(id) {
     }, 420);
 }
 
-// Global addToCart — used in producto.php
-function addToCart(id, nombre, imagen) {
-    cartPost(`action=add&id=${id}&nombre=${encodeURIComponent(nombre)}&imagen=${encodeURIComponent(imagen)}`)
-        .then(data => {
+// Global addToCart — used in catalogo.php, producto.php
+function addToCart(id, nombre, imagen, precio) {
+    // Toast de confirmación
+    var _old = document.getElementById('_ct');
+    if (_old) _old.parentNode.removeChild(_old);
+    var _t = document.createElement('div');
+    _t.id = '_ct';
+    _t.setAttribute('style',
+        'position:fixed;top:80px;right:20px;z-index:2147483647;' +
+        'background:#1a7f3c;color:#fff;padding:14px 20px;border-radius:10px;' +
+        'font-family:sans-serif;font-size:14px;font-weight:600;line-height:1.4;' +
+        'box-shadow:0 6px 24px rgba(0,0,0,.25);max-width:320px;pointer-events:none;');
+    _t.textContent = '✓ "' + nombre + '" añadido al carrito';
+    document.body.appendChild(_t);
+    setTimeout(function(){ if(_t.parentNode) _t.parentNode.removeChild(_t); }, 3500);
+
+    var body = 'action=add&id=' + id +
+               '&nombre=' + encodeURIComponent(nombre) +
+               '&imagen=' + encodeURIComponent(imagen || '') +
+               '&precio=' + (precio || 0);
+    cartPost(body)
+        .then(function(data) {
             syncBadges(data.count);
             if (typeof onCartAdd === 'function') onCartAdd(data);
         });

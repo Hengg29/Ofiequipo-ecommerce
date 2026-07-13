@@ -4,16 +4,14 @@ require_once __DIR__ . '/apis/db.php';
 require_once __DIR__ . '/includes/require_login.php';
 
 function getImageUrl($imagePath) {
-    if (empty($imagePath)) return 'https://via.placeholder.com/800x600?text=Sin+imagen';
+    if (empty($imagePath)) return 'image.php?path=placeholder';
     $imagePath = trim($imagePath);
-    if (empty($imagePath)) return 'https://via.placeholder.com/800x600?text=Sin+imagen';
+    if (empty($imagePath)) return 'image.php?path=placeholder';
     if (preg_match('/^https?:\/\//i', $imagePath)) return 'image.php?u=' . rawurlencode($imagePath);
     if (filter_var($imagePath, FILTER_VALIDATE_URL)) return 'image.php?u=' . rawurlencode($imagePath);
     $imagePath = str_replace('\\', '/', $imagePath);
     $imgTrim   = ltrim($imagePath, '/');
-    if (stripos($imgTrim, 'uploads/') === 0)
-        return 'image.php?path=' . implode('/', array_map('rawurlencode', explode('/', $imgTrim)));
-    return 'image.php?path=' . implode('/', array_map('rawurlencode', explode('/', 'Uploads/' . $imgTrim)));
+    return 'image.php?path=' . implode('/', array_map('rawurlencode', explode('/', $imgTrim)));
 }
 
 // Si viene con ?quote=id, agregar ese producto al carrito

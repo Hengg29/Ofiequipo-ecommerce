@@ -2077,12 +2077,8 @@ function pageUrl($p)
                                 </p>
                                 <div class="product-footer">
                                     <button class="btn btn-primary"
-                                        onclick="openQuoteModal('<?= htmlspecialchars($producto['nombre'], ENT_QUOTES) ?>')">
-                                        Cotización individual
-                                    </button>
-                                    <button class="btn btn-secondary"
-                                        onclick="addToCart(<?= (int)$producto['id'] ?>, '<?= htmlspecialchars($producto['nombre'], ENT_QUOTES) ?>', '<?= htmlspecialchars($imagenUrl, ENT_QUOTES) ?>', <?= number_format((float)($producto['precio'] ?? 0), 2, '.', '') ?>)">
-                                        Añadir al carrito
+                                        onclick="addToCart(<?= (int)$producto['id'] ?>, '<?= htmlspecialchars($producto['nombre'], ENT_QUOTES) ?>', '<?= htmlspecialchars($producto['imagen'] ?? '', ENT_QUOTES) ?>', <?= number_format((float)($producto['precio'] ?? 0), 2, '.', '') ?>)">
+                                        Añadir al carrito de cotización
                                     </button>
                                 </div>
                             </div>
@@ -2509,51 +2505,6 @@ function pageUrl($p)
             document.body.style.overflow = 'auto';
         }
 
-        function addToCart(id, nombre, imagen, precio) {
-            // 1. Mostrar alert/toast inmediatamente (no esperar al fetch)
-            if (!localStorage.getItem('ofi_cart_aviso')) {
-                Swal.fire({
-                    icon: 'info',
-                    title: '¡Producto añadido!',
-                    html: 'Se están añadiendo productos al carrito para <strong>solicitar una cotización conjunta</strong>.<br><br>Cuando termines, ve al carrito y haz clic en <strong>"Solicitar Cotización"</strong>.',
-                    confirmButtonText: 'Aceptar',
-                    confirmButtonColor: '#1e3a8a',
-                    showDenyButton: true,
-                    denyButtonText: 'No volver a mostrar',
-                    denyButtonColor: '#94a3b8',
-                }).then(result => {
-                    if (result.isDenied) {
-                        localStorage.setItem('ofi_cart_aviso', '1');
-                    }
-                });
-            } else {
-                Swal.fire({
-                    toast: true,
-                    position: 'top-end',
-                    icon: 'success',
-                    title: `"${nombre}" añadido al carrito`,
-                    showConfirmButton: false,
-                    timer: 3000,
-                    timerProgressBar: true,
-                });
-            }
-
-            // 2. Agregar al carrito en segundo plano y actualizar el contador
-            fetch('apis/cart.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `action=add&id=${id}&nombre=${encodeURIComponent(nombre)}&imagen=${encodeURIComponent(imagen)}&precio=${precio ?? 0}`
-            })
-            .then(r => r.json())
-            .then(data => {
-                const badge = document.querySelector('.cart-badge-count');
-                if (badge) {
-                    badge.textContent = data.count;
-                    badge.style.display = data.count > 0 ? 'inline-flex' : 'none';
-                }
-            })
-            .catch(() => {/* silencioso — el alert ya se mostró */});
-        }
 
         function openProductModal(name, description, image) {
             const modal = document.getElementById('productModal');
@@ -2934,13 +2885,8 @@ function pageUrl($p)
 
     <a class="whatsapp-fab" href="https://wa.me/528331881814?text=Hola%20quiero%20una%20cotizaci%C3%B3n" target="_blank"
         rel="noopener noreferrer" aria-label="Contactar por WhatsApp">
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <path
-                d="M20.52 3.48A11.88 11.88 0 0 0 12 .5C5.73.5.99 5.24.99 11.5c0 2.03.53 4.02 1.54 5.78L.5 23.5l6.45-1.68A11.92 11.92 0 0 0 12 23.5c6.27 0 11.01-4.74 11.01-11 0-2.95-1.15-5.73-3.49-7.02z"
-                fill="#25D366" />
-            <path
-                d="M17.3 14.3c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.95 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.48-1.76-1.66-2.06-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2 0-.38-.02-.53-.02-.15-.67-1.62-.92-2.22-.24-.6-.48-.52-.67-.53-.17-.01-.37-.01-.57-.01-.2 0-.53.08-.81.38-.28.3-1.06 1.04-1.06 2.53 0 1.48 1.09 2.92 1.24 3.12.15.2 2.14 3.42 5.19 4.8 3.05 1.38 3.05.92 3.6.86.55-.07 1.76-.72 2.01-1.41.25-.69.25-1.28.18-1.41-.07-.14-.27-.2-.57-.35z"
-                fill="#fff" />
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="#fff" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
         </svg>
     </a>
 <?php require_once __DIR__ . '/includes/cart_drawer.php'; ?>

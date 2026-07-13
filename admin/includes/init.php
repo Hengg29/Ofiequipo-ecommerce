@@ -153,6 +153,7 @@ function admin_menu_items(): array
         ['id' => 'inventario', 'module' => 'inventario', 'label' => 'Inventario', 'href' => 'inventario.php'],
         ['id' => 'promociones', 'module' => 'promociones', 'label' => 'Promociones', 'href' => 'promociones.php'],
         ['id' => 'reportes', 'module' => 'reportes', 'label' => 'Reportes', 'href' => 'reportes.php'],
+        ['id' => 'animaciones',   'module' => 'configuracion', 'label' => 'Animaciones',    'href' => 'animaciones.php'],
         ['id' => 'configuracion', 'module' => 'configuracion', 'label' => 'Configuración', 'href' => 'configuracion.php'],
         ['id' => 'auditoria', 'module' => 'auditoria', 'label' => 'Auditoría', 'href' => 'auditoria.php'],
     ];

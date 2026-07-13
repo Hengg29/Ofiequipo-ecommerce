@@ -6,6 +6,7 @@ admin_require_module('cotizaciones');
 
 $pageTitle = 'Detalle de cotización';
 $activeId  = 'cotizaciones';
+$newStatus = '';
 
 $id = (int)($_GET['id'] ?? 0);
 if (!$id) admin_redirect('cotizaciones.php');
@@ -43,7 +44,8 @@ function detectarZona(string $municipio): array {
 $zona = detectarZona($cot['dir_municipio'] ?? '');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $accion = $_POST['accion'] ?? '';
+    $accion    = $_POST['accion'] ?? '';
+    $newStatus = '';
 
     // Guardar tipo de envío
     if ($accion === 'set_envio') {
@@ -193,13 +195,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($ok !== false) {
             // Actualizar estado
+            $statusToSave = (string)($newStatus ?? 'cotizada');
             $upd = $conn->prepare("UPDATE cotizaciones SET status = ? WHERE id = ?");
-            $upd->bind_param('si', $newStatus, $id);
+            $upd->bind_param('si', $statusToSave, $id);
             $upd->execute();
             $upd->close();
-            $cot['status'] = $newStatus;
+            $cot['status'] = $statusToSave;
             admin_audit($conn, 'responder', 'cotizacion', $id, "email enviado a {$cot['email']}");
-            $flash = "Cotización enviada a {$cot['email']} y estado actualizado a «$newStatus».";
+            $flash = "Cotización enviada a {$cot['email']} y estado actualizado a «{$statusToSave}».";
         } else {
             $flash = 'Error al enviar el correo. Revisa la configuración de SendGrid.';
             $flashType = 'err';
