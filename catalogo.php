@@ -54,7 +54,12 @@ foreach ($_allCatsRaw as $_c) {
     $_catsByParent[(int)$_c['parent_id']][] = $_c;
 }
 $_countRows = $conn->query("SELECT categoria_id, COUNT(*) AS cnt FROM producto GROUP BY categoria_id")->fetch_all(MYSQLI_ASSOC);
-$_prodCountByCat = array_column($_countRows, 'cnt', 'categoria_id');
+$_prodCountByCat = [];
+foreach ($_countRows as $_cr) {
+    if ($_cr['categoria_id'] !== null) {
+        $_prodCountByCat[$_cr['categoria_id']] = $_cr['cnt'];
+    }
+}
 
 // Función helper para contar productos incluyendo subcategorías
 function prodCountInCat(int $catId, array $catsByParent, array $countByCat): int {

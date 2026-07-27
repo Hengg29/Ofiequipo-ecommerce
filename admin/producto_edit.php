@@ -30,6 +30,9 @@ $row = [
     'activo'       => 1,
 ];
 
+$prevId = 0;
+$nextId = 0;
+
 if (!$isNew) {
     $st = $conn->prepare('SELECT * FROM producto WHERE id = ?');
     $st->bind_param('i', $id);
@@ -38,6 +41,18 @@ if (!$isNew) {
     $st->close();
     if (!$p) admin_redirect('productos.php');
     $row = array_merge($row, $p);
+
+    $st = $conn->prepare('SELECT id FROM producto WHERE id < ? ORDER BY id DESC LIMIT 1');
+    $st->bind_param('i', $id);
+    $st->execute();
+    if ($r = $st->get_result()->fetch_assoc()) $prevId = (int) $r['id'];
+    $st->close();
+
+    $st = $conn->prepare('SELECT id FROM producto WHERE id > ? ORDER BY id ASC LIMIT 1');
+    $st->bind_param('i', $id);
+    $st->execute();
+    if ($r = $st->get_result()->fetch_assoc()) $nextId = (int) $r['id'];
+    $st->close();
 }
 
 // ─── Subida de imagen ─────────────────────────────────────────────────────────
@@ -157,7 +172,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $st->execute();
             $st->close();
             admin_audit($conn, 'editar', 'producto', $id, $nombre);
-            admin_redirect('productos.php');
+            admin_redirect('producto_edit.php?id=' . $id . '&guardado=1');
         }
     }
 }
@@ -225,11 +240,28 @@ if ($imgActual !== '') {
 }
 </style>
 
-<div class="page-head">
-    <h1><?= $isNew ? 'Nuevo producto' : 'Editar producto #' . $id ?></h1>
-    <p><a href="productos.php" style="color:var(--accent);">← Volver</a></p>
+<div class="page-head" style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+    <div>
+        <h1><?= $isNew ? 'Nuevo producto' : 'Editar producto #' . $id ?></h1>
+        <p><a href="productos.php" style="color:var(--accent);">← Volver</a></p>
+    </div>
+    <?php if (!$isNew): ?>
+    <div style="display:flex;gap:8px;">
+        <?php if ($prevId > 0): ?>
+            <a class="btn btn-ghost btn-sm" href="producto_edit.php?id=<?= $prevId ?>">← Anterior</a>
+        <?php else: ?>
+            <span class="btn btn-ghost btn-sm" style="opacity:.4;pointer-events:none;">← Anterior</span>
+        <?php endif; ?>
+        <?php if ($nextId > 0): ?>
+            <a class="btn btn-ghost btn-sm" href="producto_edit.php?id=<?= $nextId ?>">Siguiente →</a>
+        <?php else: ?>
+            <span class="btn btn-ghost btn-sm" style="opacity:.4;pointer-events:none;">Siguiente →</span>
+        <?php endif; ?>
+    </div>
+    <?php endif; ?>
 </div>
 <?php if ($error): ?><div class="alert err"><?= admin_h($error) ?></div><?php endif; ?>
+<?php if (!$isNew && isset($_GET['guardado'])): ?><div class="alert ok">Cambios guardados.</div><?php endif; ?>
 
 <form method="post" enctype="multipart/form-data" class="card">
     <?= csrf_field() ?>

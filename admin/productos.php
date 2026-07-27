@@ -33,15 +33,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_activo']) && $
     }
 }
 
-$q    = 'SELECT p.*, c.nombre AS cat_nombre FROM producto p LEFT JOIN categoria c ON c.id = p.categoria_id ORDER BY p.id DESC LIMIT 500';
-$res  = $conn->query($q);
+$term = trim($_GET['q'] ?? '');
+
+$where  = '';
+$types  = '';
+$params = [];
+
+if ($term !== '') {
+    $conds    = ['p.nombre LIKE ?', 'c.nombre LIKE ?'];
+    $like     = '%' . $term . '%';
+    $types   .= 'ss';
+    $params[] = $like;
+    $params[] = $like;
+
+    if ($hasPrecio && is_numeric($term)) {
+        $termNum   = (float) $term;
+        $tolerance = max(50.0, $termNum * 0.1); // exacto o "cercano" (±10%, mínimo ±$50)
+        $conds[]   = 'ABS(p.precio - ?) <= ?';
+        $types    .= 'dd';
+        $params[]  = $termNum;
+        $params[]  = $tolerance;
+    }
+
+    $where = ' WHERE (' . implode(' OR ', $conds) . ')';
+}
+
+$sql = 'SELECT p.*, c.nombre AS cat_nombre FROM producto p LEFT JOIN categoria c ON c.id = p.categoria_id'
+     . $where . ' ORDER BY p.id DESC LIMIT 500';
+
 $rows = [];
-if ($res === false) {
-    error_log('[Admin/productos] query falló: ' . $conn->error);
+$st   = $conn->prepare($sql);
+if ($st === false) {
+    error_log('[Admin/productos] prepare falló: ' . $conn->error);
 } else {
+    if ($types !== '') {
+        $st->bind_param($types, ...$params);
+    }
+    $st->execute();
+    $res = $st->get_result();
     while ($row = $res->fetch_assoc()) {
         $rows[] = $row;
     }
+    $st->close();
 }
 
 $umbralBajo = 5;
@@ -54,9 +87,24 @@ require __DIR__ . '/includes/layout.php';
 </div>
 <?php if ($msg): ?><div class="alert ok"><?= admin_h($msg) ?></div><?php endif; ?>
 
-<div style="margin-bottom:16px;">
+<div style="margin-bottom:16px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between;">
     <a class="btn btn-primary" href="producto_edit.php">+ Nuevo producto</a>
+
+    <form method="get" style="display:flex;gap:8px;align-items:center;">
+        <input type="text" name="q" value="<?= admin_h($term) ?>"
+               placeholder="Buscar por nombre, categoría o precio..."
+               style="min-width:280px;">
+        <button type="submit" class="btn btn-primary btn-sm">Buscar</button>
+        <?php if ($term !== ''): ?>
+            <a class="btn btn-ghost btn-sm" href="productos.php">Limpiar</a>
+        <?php endif; ?>
+    </form>
 </div>
+<?php if ($term !== ''): ?>
+    <p style="margin:-8px 0 16px;color:var(--muted,#6b7280);font-size:13px;">
+        <?= count($rows) ?> resultado(s) para "<?= admin_h($term) ?>"<?= (is_numeric($term) && $hasPrecio) ? ' (incluye precios exactos o cercanos)' : '' ?>.
+    </p>
+<?php endif; ?>
 
 <div class="card">
     <table class="data">
