@@ -351,8 +351,10 @@ if ($imgActual !== '') {
     <!-- ── /Imagen ─────────────────────────────────────────────────── -->
 
     <div class="form-row">
-        <label>Stock</label>
-        <input type="number" min="0" name="stock" value="<?= (int)($row['stock'] ?? 0) ?>">
+        <label>
+            <input type="checkbox" name="stock" value="1" <?= !empty($row['stock']) ? 'checked' : '' ?>>
+            Hay stock
+        </label>
     </div>
 
     <div class="form-row">

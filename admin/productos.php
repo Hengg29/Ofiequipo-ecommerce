@@ -58,17 +58,36 @@ if ($term !== '') {
     $where = ' WHERE (' . implode(' OR ', $conds) . ')';
 }
 
+$perPage = 50;
+$page    = max(1, (int) ($_GET['page'] ?? 1));
+$offset  = ($page - 1) * $perPage;
+
+$total = 0;
+$countSql = 'SELECT COUNT(*) AS n FROM producto p LEFT JOIN categoria c ON c.id = p.categoria_id' . $where;
+$stCount  = $conn->prepare($countSql);
+if ($stCount === false) {
+    error_log('[Admin/productos] prepare count falló: ' . $conn->error);
+} else {
+    if ($types !== '') {
+        $stCount->bind_param($types, ...$params);
+    }
+    $stCount->execute();
+    $total = (int) ($stCount->get_result()->fetch_assoc()['n'] ?? 0);
+    $stCount->close();
+}
+$totalPages = max(1, (int) ceil($total / $perPage));
+$page       = min($page, $totalPages);
+$offset     = ($page - 1) * $perPage;
+
 $sql = 'SELECT p.*, c.nombre AS cat_nombre FROM producto p LEFT JOIN categoria c ON c.id = p.categoria_id'
-     . $where . ' ORDER BY p.id DESC LIMIT 500';
+     . $where . ' ORDER BY p.id DESC LIMIT ? OFFSET ?';
 
 $rows = [];
 $st   = $conn->prepare($sql);
 if ($st === false) {
     error_log('[Admin/productos] prepare falló: ' . $conn->error);
 } else {
-    if ($types !== '') {
-        $st->bind_param($types, ...$params);
-    }
+    $st->bind_param($types . 'ii', ...[...$params, $perPage, $offset]);
     $st->execute();
     $res = $st->get_result();
     while ($row = $res->fetch_assoc()) {
@@ -77,13 +96,44 @@ if ($st === false) {
     $st->close();
 }
 
-$umbralBajo = 5;
-
 require __DIR__ . '/includes/layout.php';
 ?>
+<style>
+.search-box-productos {
+    position: relative;
+    min-width: 300px;
+}
+.search-box-productos input[type=text] {
+    width: 100%;
+    padding: 10px 14px 10px 38px;
+    border-radius: var(--radius-sm, 8px);
+    border: 1px solid var(--border, #d1d5db);
+    background: var(--surface, #fff);
+    color: var(--text, #111827);
+    font-family: inherit;
+    font-size: 13.5px;
+    transition: border-color .2s, box-shadow .2s;
+}
+.search-box-productos input[type=text]:focus {
+    outline: none;
+    border-color: var(--primary, #1D3D8E);
+    box-shadow: 0 0 0 3px rgba(29,61,142,.1);
+}
+.search-box-productos .search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted, #9ca3af);
+    pointer-events: none;
+    font-size: 14px;
+}
+.data th.col-center, .data td.col-center { text-align: center; }
+</style>
+
 <div class="page-head">
     <h1>Gestión de productos</h1>
-    <p>Alta, edición, precio, stock, imagen y categoría. Alertas si stock ≤ <?= (int) $umbralBajo ?>.</p>
+    <p>Alta, edición, precio, stock, imagen y categoría.</p>
 </div>
 <?php if ($msg): ?><div class="alert ok"><?= admin_h($msg) ?></div><?php endif; ?>
 
@@ -91,20 +141,21 @@ require __DIR__ . '/includes/layout.php';
     <a class="btn btn-primary" href="producto_edit.php">+ Nuevo producto</a>
 
     <form method="get" style="display:flex;gap:8px;align-items:center;">
-        <input type="text" name="q" value="<?= admin_h($term) ?>"
-               placeholder="Buscar por nombre, categoría o precio..."
-               style="min-width:280px;">
+        <div class="search-box-productos">
+            <span class="search-icon">🔎</span>
+            <input type="text" name="q" value="<?= admin_h($term) ?>"
+                   placeholder="Buscar por nombre, categoría o precio...">
+        </div>
         <button type="submit" class="btn btn-primary btn-sm">Buscar</button>
         <?php if ($term !== ''): ?>
             <a class="btn btn-ghost btn-sm" href="productos.php">Limpiar</a>
         <?php endif; ?>
     </form>
 </div>
-<?php if ($term !== ''): ?>
-    <p style="margin:-8px 0 16px;color:var(--muted,#6b7280);font-size:13px;">
-        <?= count($rows) ?> resultado(s) para "<?= admin_h($term) ?>"<?= (is_numeric($term) && $hasPrecio) ? ' (incluye precios exactos o cercanos)' : '' ?>.
-    </p>
-<?php endif; ?>
+<p style="margin:-8px 0 16px;color:var(--muted,#6b7280);font-size:13px;">
+    <?= $total ?> producto(s)<?= $term !== '' ? ' para "' . admin_h($term) . '"' . ((is_numeric($term) && $hasPrecio) ? ' (incluye precios exactos o cercanos)' : '') : '' ?>
+    · página <?= $page ?> de <?= $totalPages ?>
+</p>
 
 <div class="card">
     <table class="data">
@@ -114,7 +165,7 @@ require __DIR__ . '/includes/layout.php';
                 <th>Nombre</th>
                 <th>Categoría</th>
                 <th>Precio</th>
-                <th>Stock</th>
+                <th class="col-center">Stock</th>
                 <th>Destacado</th>
                 <?php if ($hasActivo): ?><th>Activo</th><?php endif; ?>
                 <th></th>
@@ -122,16 +173,13 @@ require __DIR__ . '/includes/layout.php';
         </thead>
         <tbody>
             <?php foreach ($rows as $p): ?>
-                <?php
-                $stock = (int) ($p['stock'] ?? 0);
-                $bajo  = $stock <= $umbralBajo;
-                ?>
-                <tr style="<?= $bajo ? 'background:rgba(245,158,11,.08);' : '' ?>">
+                <?php $stock = (int) ($p['stock'] ?? 0); ?>
+                <tr>
                     <td><?= (int) $p['id'] ?></td>
-                    <td><?= admin_h($p['nombre']) ?><?= $bajo ? ' <span class="badge pendiente">bajo</span>' : '' ?></td>
+                    <td><?= admin_h($p['nombre']) ?></td>
                     <td><?= admin_h($p['cat_nombre'] ?? '') ?></td>
                     <td><?= $hasPrecio ? '$' . number_format((float) ($p['precio'] ?? 0), 2) : '—' ?></td>
-                    <td><?= $stock ?></td>
+                    <td class="col-center"><?= $stock ? '<span style="color:#16a34a;font-weight:700;font-size:16px;">✓</span>' : '<span style="color:#dc2626;font-weight:700;font-size:16px;">✗</span>' ?></td>
                     <td><?= !empty($p['destacado']) ? 'Sí' : 'No' ?></td>
                     <?php if ($hasActivo): ?>
                         <td>
@@ -149,4 +197,38 @@ require __DIR__ . '/includes/layout.php';
         </tbody>
     </table>
 </div>
+
+<?php if ($totalPages > 1): ?>
+<?php
+$pageUrl = function (int $p) use ($term): string {
+    $qs = ['page' => $p];
+    if ($term !== '') $qs['q'] = $term;
+    return 'productos.php?' . http_build_query($qs);
+};
+?>
+<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:center;margin-top:18px;">
+    <?php if ($page > 1): ?>
+        <a class="btn btn-ghost btn-sm" href="<?= admin_h($pageUrl($page - 1)) ?>">← Anterior</a>
+    <?php endif; ?>
+
+    <?php
+    $start = max(1, $page - 3);
+    $end   = min($totalPages, $page + 3);
+    if ($start > 1) echo '<a class="btn btn-ghost btn-sm" href="' . admin_h($pageUrl(1)) . '">1</a>';
+    if ($start > 2) echo '<span style="padding:0 4px;color:var(--muted,#6b7280);">…</span>';
+    for ($i = $start; $i <= $end; $i++):
+    ?>
+        <a class="btn <?= $i === $page ? 'btn-primary' : 'btn-ghost' ?> btn-sm" href="<?= admin_h($pageUrl($i)) ?>"><?= $i ?></a>
+    <?php endfor; ?>
+    <?php
+    if ($end < $totalPages - 1) echo '<span style="padding:0 4px;color:var(--muted,#6b7280);">…</span>';
+    if ($end < $totalPages) echo '<a class="btn btn-ghost btn-sm" href="' . admin_h($pageUrl($totalPages)) . '">' . $totalPages . '</a>';
+    ?>
+
+    <?php if ($page < $totalPages): ?>
+        <a class="btn btn-ghost btn-sm" href="<?= admin_h($pageUrl($page + 1)) ?>">Siguiente →</a>
+    <?php endif; ?>
+</div>
+<?php endif; ?>
+
 <?php require __DIR__ . '/includes/layout_end.php'; ?>
