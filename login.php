@@ -525,6 +525,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 4a3 3 0 1 1 0 6 3 3 0 0 1 0-6zm0 13c-2.5 0-4.71-1.28-6-3.22C6.03 13.36 9.13 12 12 12s5.97 1.36 6 2.78C16.71 16.72 14.5 18 12 18z"/></svg>
                     Inicia sesión para continuar con tu compra.
                 </div>
+            <?php elseif ($getMsg === 'cotizacion'): ?>
+                <div class="alert alert-error" style="display:flex;align-items:center;gap:8px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg>
+                    Inicia sesión para enviar tu cotización. Tus productos se conservan.
+                </div>
             <?php elseif ($getMsg === 'verificar_correo'): ?>
                 <div class="alert alert-success" style="line-height:1.5;">
                     <strong>¡Cuenta creada!</strong> Te enviamos un correo a <strong><?= $getEmail ?></strong>. Verifica tu correo para poder iniciar sesión.
@@ -550,7 +555,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="alert alert-success"><?= htmlspecialchars($success) ?></div>
             <?php endif; ?>
 
-            <form method="POST" action="?redirect=<?= htmlspecialchars($redirectAfterLogin) ?>">
+            <form method="POST" action="?redirect=<?= htmlspecialchars(urlencode($redirectAfterLogin)) ?>">
                 <?= csrf_field() ?>
                 <div class="form-group">
                     <label for="email">Correo Electrónico</label>

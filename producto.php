@@ -2,6 +2,7 @@
 session_start();
 session_write_close(); // Liberar lock de sesión antes de queries pesadas
 require_once __DIR__ . '/apis/db.php';
+require_once __DIR__ . '/includes/config.php';
 
 // Pre-cargar categorías y conteos para el navbar (evita N+1)
 $_allCatsRaw = $conn->query("SELECT id, nombre, parent_id FROM categoria ORDER BY nombre")->fetch_all(MYSQLI_ASSOC);
@@ -49,7 +50,6 @@ $stmt->close();
 if (!$producto) { header('Location: index.php'); exit; }
 
 $imagenUrl = getImageUrl($producto['imagen'] ?? '');
-$inCart    = !empty(array_filter($_SESSION['cart'] ?? [], fn($i) => $i['id'] === $id));
 
 // Related products (same category)
 $related = [];
@@ -67,7 +67,6 @@ $categoria_id  = 0;
 $totalProducts = 0;
 $tp = $conn->query("SELECT COUNT(*) AS cnt FROM producto");
 if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
-$cartCount = array_sum(array_column($_SESSION['cart'] ?? [], 'cantidad'));
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -176,7 +175,8 @@ $cartCount = array_sum(array_column($_SESSION['cart'] ?? [], 'cantidad'));
             .nav.active { display: flex !important; }
             .nav a { padding: 12px 16px; color: var(--text-dark); text-decoration: none; border-bottom: 1px solid #f0f0f0; }
             .nav a:hover { background: #f8f9fa; color: var(--primary-blue); }
-            .header-actions { display: none; }
+            /* En móvil solo queda "Mi resumen" (único acceso al resumen de cotización) */
+            .header-actions > :not(.btn-resumen) { display: none; }
             .nav .navbar-category-dropdown { position: static; display: block; width: 100%; }
             .nav .navbar-category-dropdown-menu { position: static; display: none; box-shadow: none; border: none; background: #f8f9fa; margin: 0; padding: 0; width: 100%; }
             .nav .navbar-category-dropdown-menu.active { display: block; animation: none; }
@@ -654,11 +654,11 @@ $cartCount = array_sum(array_column($_SESSION['cart'] ?? [], 'cantidad'));
                 </nav>
                 <div class="header-actions">
                     <a href="tel:8331881814" class="btn btn-secondary btn-small">Llamar</a>
-                    <a href="https://wa.me/528331881814" class="btn btn-secondary btn-small">WhatsApp</a>
-                    <button onclick="openCartDrawer()" class="btn btn-secondary btn-small" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
+                    <a href="https://wa.me/<?= WHATSAPP_NUMERO ?>" class="btn btn-secondary btn-small">WhatsApp</a>
+                    <button onclick="openCartDrawer()" class="btn btn-secondary btn-small btn-resumen" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 18c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm10 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zM5.82 5H21l-1.68 8.39c-.16.79-.84 1.36-1.64 1.36H8.08c-.8 0-1.49-.57-1.64-1.36L5 5H3V3H5.82z"/></svg>
-                        Carrito
-                        <span class="cart-badge-count" style="<?= $cartCount > 0 ? '' : 'display:none;' ?>background:#ef4444;color:white;font-size:10px;font-weight:700;min-width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;padding:0 3px;"><?= $cartCount ?></span>
+                        Mi resumen
+                        <span class="cart-badge-count" style="display:none;background:#ef4444;color:white;font-size:10px;font-weight:700;min-width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;padding:0 3px;">0</span>
                     </button>
                 </div>
                 <button class="menu-toggle" aria-label="Toggle menu">
@@ -714,20 +714,11 @@ $cartCount = array_sum(array_column($_SESSION['cart'] ?? [], 'cantidad'));
 
                 <h1 class="product-name-title"><?= htmlspecialchars($producto['nombre']) ?></h1>
 
-                <!-- Price — column not in DB yet, placeholder shown -->
-                <?php if (!empty($producto['precio']) && (float)$producto['precio'] > 0): ?>
-                <div class="product-price-block">
-                    <span class="product-price">
-                        $<?= number_format((float)$producto['precio'], 2, '.', ',') ?>
-                    </span>
-                    <span class="product-price-note">MXN + IVA</span>
-                </div>
-                <?php else: ?>
+                <!-- Sin precio público: se cotiza por WhatsApp -->
                 <div class="product-price-placeholder">
-                    <svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
-                    Precio disponible próximamente — cotiza sin compromiso
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13zM8 13h8v2H8v-2zm0 4h5v2H8v-2z"/></svg>
+                    Precio sobre cotización — agrégalo y te respondemos por WhatsApp
                 </div>
-                <?php endif; ?>
 
                 <!-- Stock badge — stock not in DB yet, show "Disponible" -->
                 <div class="product-stock-badge in-stock">
@@ -768,12 +759,11 @@ $cartCount = array_sum(array_column($_SESSION['cart'] ?? [], 'cantidad'));
 
                 <!-- CTA buttons -->
                 <div class="product-cta">
-                    <button class="btn-add-cart" id="addCartBtn"
-                        onclick="handleAddToCart()">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M7 18c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm10 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zM5.82 5H21l-1.68 8.39c-.16.79-.84 1.36-1.64 1.36H8.08c-.8 0-1.49-.57-1.64-1.36L5 5H3V3H5.82z"/></svg>
-                        <?= $inCart ? 'Ya en el carrito — Agregar más' : 'Añadir al carrito' ?>
-                    </button>
-                    <a href="https://wa.me/528331881814?text=<?= urlencode('Hola, me interesa el producto: ' . $producto['nombre']) ?>"
+                    <button type="button" class="btn-add-cart js-add-cot" id="addCartBtn"
+                        data-id="<?= (int)$id ?>"
+                        data-nombre="<?= htmlspecialchars($producto['nombre'], ENT_QUOTES) ?>"
+                        data-imagen="<?= htmlspecialchars($imagenUrl, ENT_QUOTES) ?>">Agregar a cotización</button>
+                    <a href="https://wa.me/<?= WHATSAPP_NUMERO ?>?text=<?= urlencode('Hola, me interesa el producto: ' . $producto['nombre']) ?>"
                        target="_blank" class="btn-whatsapp">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.118 1.523 5.847L0 24l6.334-1.49A11.934 11.934 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.896 0-3.67-.502-5.199-1.378l-.372-.22-3.762.886.935-3.663-.242-.38A9.937 9.937 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
                         Consultar por WhatsApp
@@ -807,10 +797,10 @@ $cartCount = array_sum(array_column($_SESSION['cart'] ?? [], 'cantidad'));
                             <?= $relDesc ? htmlspecialchars(mb_strimwidth($relDesc, 0, 100, '…')) : 'Producto de alta calidad para tu oficina.' ?>
                         </p>
                         <div class="product-footer">
-                            <button class="btn btn-primary"
-                                onclick="addToCart(<?= (int)$rel['id'] ?>,'<?= addslashes(htmlspecialchars($rel['nombre'])) ?>','<?= addslashes($relImg) ?>')">
-                                Agregar
-                            </button>
+                            <button type="button" class="btn btn-primary js-add-cot"
+                                data-id="<?= (int)$rel['id'] ?>"
+                                data-nombre="<?= htmlspecialchars($rel['nombre'], ENT_QUOTES) ?>"
+                                data-imagen="<?= htmlspecialchars($relImg, ENT_QUOTES) ?>">Agregar a cotización</button>
                             <a class="btn btn-secondary"
                                href="producto.php?id=<?= (int)$rel['id'] ?>">Ver detalles</a>
                         </div>
@@ -824,19 +814,13 @@ $cartCount = array_sum(array_column($_SESSION['cart'] ?? [], 'cantidad'));
     </main>
 
     <!-- WhatsApp FAB -->
-    <a href="https://wa.me/528331881814" target="_blank" class="whatsapp-fab" aria-label="Contáctanos por WhatsApp">
+    <a href="https://wa.me/<?= WHATSAPP_NUMERO ?>" target="_blank" class="whatsapp-fab" aria-label="Contáctanos por WhatsApp">
         <svg viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
             <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zM12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.118 1.523 5.847L0 24l6.334-1.49A11.934 11.934 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.896 0-3.67-.502-5.199-1.378l-.372-.22-3.762.886.935-3.663-.242-.38A9.937 9.937 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
         </svg>
     </a>
 
-    <!-- Toast notification -->
-    <div class="cart-toast" id="cartToast">
-        <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-        <span>¡Producto agregado al carrito!</span>
-    </div>
-
-    <?php require_once __DIR__ . '/includes/cart_drawer.php'; ?>
+    <?php require_once __DIR__ . '/includes/cotizacion_widget.php'; ?>
 
     <!-- IMAGE LIGHTBOX -->
     <div class="img-lightbox" id="imgLightbox">
@@ -862,41 +846,6 @@ $cartCount = array_sum(array_column($_SESSION['cart'] ?? [], 'cantidad'));
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-    // ── Product page cart handler ──────────────────────────────
-    const productId    = <?= (int)$id ?>;
-    const productName  = <?= json_encode($producto['nombre']) ?>;
-    const productImage = <?= json_encode($imagenUrl) ?>;
-
-    function handleAddToCart() {
-        addToCart(productId, productName, productImage);
-    }
-
-    // Called back by cart_drawer.php after addToCart resolves
-    function onCartAdd(data) {
-        const btn = document.getElementById('addCartBtn');
-        btn.classList.add('added');
-        btn.innerHTML = `
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-            ¡Agregado al carrito!
-        `;
-
-        // Show toast
-        const toast = document.getElementById('cartToast');
-        toast.classList.add('show');
-        setTimeout(() => toast.classList.remove('show'), 2800);
-
-        // No abrir drawer automáticamente — el toast es suficiente feedback
-
-        // Reset button after drawer is open
-        setTimeout(() => {
-            btn.classList.remove('added');
-            btn.innerHTML = `
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M7 18c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm10 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zM5.82 5H21l-1.68 8.39c-.16.79-.84 1.36-1.64 1.36H8.08c-.8 0-1.49-.57-1.64-1.36L5 5H3V3H5.82z"/></svg>
-                Añadir al carrito
-            `;
-        }, 3200);
-    }
-
     // ── Navbar JS (same as catalogo.php) ──────────────────────
     document.addEventListener('DOMContentLoaded', function () {
         const toggle   = document.getElementById('navbarCategoryToggle');

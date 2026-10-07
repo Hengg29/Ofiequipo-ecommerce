@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once __DIR__ . '/apis/db.php';
+require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/require_login.php';
 
 $confirmacion = $_SESSION['paypal_confirmacion'] ?? null;
@@ -207,7 +208,7 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
                 </nav>
                 <div class="header-actions">
                     <a href="tel:8331881814" class="btn btn-secondary btn-small">Llamar</a>
-                    <a href="https://wa.me/528331881814" class="btn btn-secondary btn-small">WhatsApp</a>
+                    <a href="https://wa.me/<?= WHATSAPP_NUMERO ?>" class="btn btn-secondary btn-small">WhatsApp</a>
                     <?php require_once __DIR__ . '/includes/user_avatar.php'; ?>
                 </div>
                 <button class="menu-toggle" aria-label="Toggle menu"><span></span><span></span><span></span></button>

@@ -6,6 +6,7 @@ session_start();
 header('Content-Type: application/json');
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../includes/cotizacion_pago.php';
 ob_clean();
 
 if (empty($_SESSION['user_id'])) {
@@ -13,37 +14,29 @@ if (empty($_SESSION['user_id'])) {
     exit;
 }
 
-$cart = $_SESSION['cart'] ?? [];
-if (empty($cart)) {
-    echo json_encode(['error' => 'Carrito vacío.']);
+// Solo se paga una cotización con total fijado por el admin (la carga pago.php)
+$cot = cot_pagable($conn, (int)($_SESSION['pago_cot_id'] ?? 0), (int)$_SESSION['user_id']);
+if (!$cot) {
+    echo json_encode(['error' => 'Esta cotización no está disponible para pago.']);
     exit;
 }
-
-// Calcular total desde la BD (nunca confiar en el cliente)
-$total = 0;
-foreach ($cart as $item) {
-    $sp = $conn->prepare("SELECT precio FROM producto WHERE id = ? AND activo = 1");
-    $sp->bind_param('i', $item['id']);
-    $sp->execute();
-    $pr = $sp->get_result()->fetch_assoc();
-    $sp->close();
-    $total += (float)($pr['precio'] ?? 0) * (int)$item['cantidad'];
-}
-
-if ($total <= 0) {
-    echo json_encode(['error' => 'Total inválido. Verifica los precios del carrito.']);
-    exit;
-}
+$total = (float)$cot['total'];
 
 try {
     $stripe = new \Stripe\StripeClient($_ENV['STRIPE_SECRET_KEY'] ?? '');
     $intent = $stripe->paymentIntents->create([
-        'amount'   => (int) round($total * 100), // centavos
-        'currency' => 'mxn',
+        'amount'      => (int) round($total * 100), // centavos
+        'currency'    => 'mxn',
         'payment_method_types' => ['card'],
-        'metadata' => ['user_id' => $_SESSION['user_id']],
+        'description' => 'Cotización ' . $cot['folio'],
+        'metadata'    => [
+            'user_id'       => $_SESSION['user_id'],
+            'cotizacion_id' => $cot['id'],
+            'folio'         => $cot['folio'],
+        ],
     ]);
-    echo json_encode(['client_secret' => $intent->client_secret, 'amount' => $total]);
+    echo json_encode(['client_secret' => $intent->client_secret]);
 } catch (Throwable $e) {
-    echo json_encode(['error' => 'Error Stripe: ' . $e->getMessage()]);
+    error_log('[Stripe Create] ' . $e->getMessage());
+    echo json_encode(['error' => 'No se pudo iniciar el pago con tarjeta. Intenta de nuevo.']);
 }

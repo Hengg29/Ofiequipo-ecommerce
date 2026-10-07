@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once __DIR__ . '/apis/db.php';
+require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/require_login.php';
 
 
@@ -48,10 +49,53 @@ foreach ($pedidos as $p) {
     $stmtD->execute();
     $detalles[$p['id']] = $stmtD->get_result()->fetch_all(MYSQLI_ASSOC);
     $stmtD->close();
+
+    // Pedidos pagados desde una cotización: usar sus partidas si no hay detalle por variante
+    if (empty($detalles[$p['id']])) {
+        $stmtD = $conn->prepare("
+            SELECT ci.cantidad, ci.precio, ci.nombre_producto AS nombre, ci.imagen
+            FROM cotizacion_items ci
+            JOIN cotizaciones c ON c.id = ci.cotizacion_id
+            WHERE c.pedido_id = ? AND c.usuario_id = ?
+        ");
+        $stmtD->bind_param('ii', $p['id'], $userId);
+        $stmtD->execute();
+        $detalles[$p['id']] = $stmtD->get_result()->fetch_all(MYSQLI_ASSOC);
+        $stmtD->close();
+    }
+}
+
+// Cotizaciones del usuario (sin montos: el total solo se ve en la página de pago)
+$stmtQ = $conn->prepare("
+    SELECT id, folio, fecha, status, total, pago_enviado_en, pagada_en, pedido_id
+    FROM cotizaciones WHERE usuario_id = ? ORDER BY fecha DESC
+");
+$stmtQ->bind_param('i', $userId);
+$stmtQ->execute();
+$cotizaciones = $stmtQ->get_result()->fetch_all(MYSQLI_ASSOC);
+$stmtQ->close();
+
+$cotItems = [];
+if ($cotizaciones) {
+    $ids = array_column($cotizaciones, 'id');
+    $ph  = implode(',', array_fill(0, count($ids), '?'));
+    $stmtI = $conn->prepare("SELECT cotizacion_id, nombre_producto, cantidad, imagen FROM cotizacion_items WHERE cotizacion_id IN ($ph) ORDER BY id");
+    $stmtI->bind_param(str_repeat('i', count($ids)), ...$ids);
+    $stmtI->execute();
+    foreach ($stmtI->get_result()->fetch_all(MYSQLI_ASSOC) as $ci) $cotItems[$ci['cotizacion_id']][] = $ci;
+    $stmtI->close();
+}
+
+// Estado visible para el cliente
+function cotEstadoCliente(array $c): array {
+    if ($c['pagada_en'] !== null)   return ['label' => 'Pagada',           'color' => '#16a34a', 'bg' => '#dcfce7', 'pagar' => false];
+    if ($c['status'] === 'rechazada') return ['label' => 'Cancelada',      'color' => '#ef4444', 'bg' => '#fef2f2', 'pagar' => false];
+    if ($c['status'] === 'cotizada' && $c['pago_enviado_en'] !== null && (float)$c['total'] > 0)
+                                    return ['label' => 'Lista para pagar', 'color' => '#2563eb', 'bg' => '#eff6ff', 'pagar' => true];
+    return                                 ['label' => 'En revisión',      'color' => '#f59e0b', 'bg' => '#fef3c7', 'pagar' => false];
 }
 
 // Header vars
-$cartCount     = array_sum(array_column($_SESSION['cart'] ?? [], 'cantidad'));
 $totalProducts = 0;
 $tp = $conn->query("SELECT COUNT(*) AS cnt FROM producto");
 if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
@@ -178,6 +222,14 @@ $metodoPago = [
         .order-item-detail { font-size:12px; color:#64748b; margin-top:2px; }
         .order-item-price { font-size:14px; font-weight:700; color:#0f172a; white-space:nowrap; }
 
+        /* Cotizaciones */
+        .section-title { font-size:18px; font-weight:800; color:#0f172a; margin:0 0 4px; }
+        .section-sub { font-size:13px; color:#64748b; margin:0 0 16px; }
+        .btn-pagar { display:inline-flex; align-items:center; gap:6px; padding:9px 16px; background:linear-gradient(135deg,#1e3a8a,#2563eb); color:white; border-radius:10px; font-size:13px; font-weight:700; text-decoration:none; white-space:nowrap; box-shadow:0 4px 14px rgba(37,99,235,0.3); }
+        .btn-pagar:hover { transform:translateY(-1px); }
+        .btn-pagar:focus-visible, .order-head:focus-visible { outline:3px solid #93c5fd; outline-offset:2px; }
+        .cot-section { margin-bottom:40px; }
+
         @media (max-width:640px) { .pedidos-page { padding:24px 16px 60px; } .order-head { padding:14px 16px; } .order-body { padding:16px; } }
     </style>
 </head>
@@ -235,11 +287,8 @@ $metodoPago = [
                 </nav>
                 <div class="header-actions">
                     <a href="tel:8331881814" class="btn btn-secondary btn-small">Llamar</a>
-                    <a href="https://wa.me/528331881814" class="btn btn-secondary btn-small">WhatsApp</a>
-                    <a href="carrito.php" class="btn btn-secondary btn-small" style="display:inline-flex;align-items:center;gap:6px;">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M7 18c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm10 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zM5.82 5H21l-1.68 8.39c-.16.79-.84 1.36-1.64 1.36H8.08c-.8 0-1.49-.57-1.64-1.36L5 5H3V3H5.82z"/></svg>
-                        Carrito<?php if ($cartCount > 0): ?> <span style="background:#ef4444;color:white;font-size:10px;font-weight:700;min-width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;padding:0 3px;"><?= $cartCount ?></span><?php endif; ?>
-                    </a>
+                    <a href="https://wa.me/<?= WHATSAPP_NUMERO ?>" class="btn btn-secondary btn-small">WhatsApp</a>
+                    <a href="catalogo.php?cotizacion=abrir" class="btn btn-primary btn-small">Mi resumen</a>
                     <?php require_once __DIR__ . '/includes/user_avatar.php'; ?>
                 </div>
                 <button class="menu-toggle" aria-label="Toggle menu"><span></span><span></span><span></span></button>
@@ -257,6 +306,55 @@ $metodoPago = [
 
         <h1 class="page-title">Mis Pedidos</h1>
         <p class="page-subtitle"><?= count($pedidos) ?> pedido<?= count($pedidos) !== 1 ? 's' : '' ?> registrado<?= count($pedidos) !== 1 ? 's' : '' ?> en tu cuenta</p>
+
+        <?php if ($cotizaciones): ?>
+        <section class="cot-section" aria-labelledby="tituloCotizaciones">
+            <h2 class="section-title" id="tituloCotizaciones">Mis cotizaciones</h2>
+            <p class="section-sub">Te contactamos por WhatsApp para acordar el precio. Cuando esté listo, aquí aparecerá el botón para pagar.</p>
+            <?php foreach ($cotizaciones as $c):
+                $ce    = cotEstadoCliente($c);
+                $cits  = $cotItems[$c['id']] ?? [];
+                $piezas = array_sum(array_column($cits, 'cantidad'));
+                $domId = 'cot-' . (int)$c['id'];
+            ?>
+            <div class="order-card" id="<?= $domId ?>">
+                <div class="order-head" role="button" tabindex="0" aria-expanded="false" aria-controls="<?= $domId ?>-body"
+                     onclick="toggleCard('<?= $domId ?>')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleCard('<?= $domId ?>');}">
+                    <div class="order-head-left">
+                        <div>
+                            <div class="order-id"><span>Cotización </span><?= htmlspecialchars($c['folio']) ?></div>
+                            <div class="order-date"><?= date('d M Y, H:i', strtotime($c['fecha'])) ?> · <?= $piezas ?> pieza<?= $piezas !== 1 ? 's' : '' ?></div>
+                        </div>
+                        <span class="order-status" style="color:<?= $ce['color'] ?>;background:<?= $ce['bg'] ?>;">
+                            <svg width="8" height="8" viewBox="0 0 8 8" fill="<?= $ce['color'] ?>" aria-hidden="true"><circle cx="4" cy="4" r="4"/></svg>
+                            <?= $ce['label'] ?>
+                        </span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <?php if ($ce['pagar']): ?>
+                        <a class="btn-pagar" href="pago.php?folio=<?= urlencode($c['folio']) ?>" onclick="event.stopPropagation()">Pagar ahora</a>
+                        <?php endif; ?>
+                        <svg class="order-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5z"/></svg>
+                    </div>
+                </div>
+                <div class="order-body" id="<?= $domId ?>-body">
+                    <div class="order-items">
+                        <?php foreach ($cits as $it): ?>
+                        <div class="order-item-row">
+                            <img class="order-item-img" src="<?= htmlspecialchars(getImageUrl($it['imagen'] ?? '')) ?>" alt="">
+                            <div class="order-item-info">
+                                <div class="order-item-name"><?= htmlspecialchars($it['nombre_producto']) ?></div>
+                                <div class="order-item-detail">Cantidad: <?= (int)$it['cantidad'] ?></div>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </section>
+        <?php endif; ?>
+
 
         <?php if (empty($pedidos)): ?>
         <div class="empty-state">
@@ -335,6 +433,11 @@ $metodoPago = [
     function toggleOrder(id) {
         const card = document.getElementById('order-' + id);
         card.classList.toggle('open');
+    }
+    function toggleCard(domId) {
+        const card = document.getElementById(domId);
+        const abierto = card.classList.toggle('open');
+        card.querySelector('.order-head').setAttribute('aria-expanded', abierto ? 'true' : 'false');
     }
 
     document.addEventListener('DOMContentLoaded', function () {

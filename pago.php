@@ -2,6 +2,8 @@
 session_start();
 require_once __DIR__ . '/apis/db.php';
 require_once __DIR__ . '/includes/require_login.php';
+require_once __DIR__ . '/includes/config.php';
+require_once __DIR__ . '/includes/cotizacion_pago.php';
 
 function getImageUrl($imagePath) {
     if (empty($imagePath)) return 'https://via.placeholder.com/800x600?text=Sin+imagen';
@@ -16,25 +18,31 @@ function getImageUrl($imagePath) {
     return 'image.php?path=' . implode('/', array_map('rawurlencode', explode('/', 'Uploads/' . $imgTrim)));
 }
 
-$cart      = $_SESSION['cart'] ?? [];
+// Pago de una cotización: pago.php?folio=COT-AAAA-NNNNN
+// Solo el dueño de la cotización puede pagarla y solo cuando el admin ya fijó el total.
+$folio  = trim($_GET['folio'] ?? '');
+$userId = (int)$_SESSION['user_id'];
+$st = $conn->prepare("SELECT * FROM cotizaciones WHERE folio = ? AND usuario_id = ? LIMIT 1");
+$st->bind_param('si', $folio, $userId);
+$st->execute();
+$cot = $st->get_result()->fetch_assoc();
+$st->close();
+
+if (!$cot) { header('Location: mis_pedidos.php'); exit; }
+if ($cot['pagada_en'] !== null) { header('Location: mis_pedidos.php?pagada=' . urlencode($folio)); exit; }
+$cot = cot_pagable($conn, (int)$cot['id'], $userId);
+if (!$cot) { header('Location: mis_pedidos.php'); exit; }
+
+$_SESSION['pago_cot_id'] = (int)$cot['id'];
+session_write_close();
+
+$cart      = cot_items($conn, (int)$cot['id']);
 $cartCount = array_sum(array_column($cart, 'cantidad'));
-if (empty($cart)) { header('Location: carrito.php'); exit; }
+$cartTotal = (float)$cot['total'];
+$envioAmt  = $cot['envio_tipo'] === 'con_costo' ? (float)$cot['envio_costo'] : 0.0;
 
 $paypalClientId  = $_ENV['PAYPAL_CLIENT_ID'] ?? '';
 $stripePublicKey = $_ENV['STRIPE_PUBLIC_KEY'] ?? '';
-
-// Obtener precios de la BD para cada item del carrito
-$cartTotal = 0;
-foreach ($cart as &$item) {
-    $sp = $conn->prepare("SELECT precio FROM producto WHERE id = ? AND activo = 1");
-    $sp->bind_param('i', $item['id']);
-    $sp->execute();
-    $pr = $sp->get_result()->fetch_assoc();
-    $sp->close();
-    $item['precio'] = (float)($pr['precio'] ?? 0);
-    $cartTotal += $item['precio'] * (int)$item['cantidad'];
-}
-unset($item);
 
 // Header vars
 $search_query  = '';
@@ -513,15 +521,9 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
                 </nav>
                 <div class="header-actions">
                     <a href="tel:8331881814" class="btn btn-secondary btn-small">Llamar</a>
-                    <a href="https://wa.me/528331881814" class="btn btn-secondary btn-small">WhatsApp</a>
+                    <a href="https://wa.me/<?= WHATSAPP_NUMERO ?>" class="btn btn-secondary btn-small">WhatsApp</a>
                     <?php require_once __DIR__ . '/includes/user_avatar.php'; ?>
-                    <a href="carrito.php" class="btn btn-secondary btn-small" style="display:inline-flex;align-items:center;gap:6px;">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M7 18c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm10 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zM5.82 5H21l-1.68 8.39c-.16.79-.84 1.36-1.64 1.36H8.08c-.8 0-1.49-.57-1.64-1.36L5 5H3V3H5.82z"/></svg>
-                        Carrito
-                        <?php if ($cartCount > 0): ?>
-                        <span style="background:#ef4444;color:white;font-size:10px;font-weight:700;min-width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;padding:0 3px;"><?= $cartCount ?></span>
-                        <?php endif; ?>
-                    </a>
+                    <a href="catalogo.php?cotizacion=abrir" class="btn btn-primary btn-small">Mi resumen</a>
                 </div>
                 <button class="menu-toggle" aria-label="Toggle menu">
                     <span></span><span></span><span></span>
@@ -538,11 +540,9 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
             <span class="breadcrumb-sep">›</span>
             <a href="catalogo.php">Catálogo</a>
             <span class="breadcrumb-sep">›</span>
-            <a href="carrito.php">Mi Carrito</a>
+            <a href="mis_pedidos.php">Mis pedidos</a>
             <span class="breadcrumb-sep">›</span>
-            <a href="datos.php">Datos</a>
-            <span class="breadcrumb-sep">›</span>
-            <span style="color:#0f172a;font-weight:500;">Pago</span>
+            <span style="color:#0f172a;font-weight:500;">Pago de <?= htmlspecialchars($cot['folio']) ?></span>
         </nav>
 
         <!-- Progress (4 steps) -->
@@ -551,14 +551,14 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
                 <div class="step-num">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
                 </div>
-                <span>Carrito</span>
+                <span>Cotización</span>
             </div>
             <div class="step-line done"></div>
             <div class="step done">
                 <div class="step-num">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
                 </div>
-                <span>Datos</span>
+                <span>Precio acordado</span>
             </div>
             <div class="step-line done"></div>
             <div class="step active">
@@ -575,7 +575,7 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
         <!-- Title -->
         <div class="pay-page-header">
             <h1>Método de pago</h1>
-            <p>Elige cómo quieres pagar tu pedido de <?= count($cart) ?> <?= count($cart) === 1 ? 'producto' : 'productos' ?>.</p>
+            <p>Paga tu cotización <strong><?= htmlspecialchars($cot['folio']) ?></strong> con el precio acordado.</p>
         </div>
 
         <div class="pay-layout">
@@ -733,21 +733,21 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
                     <p><?= count($cart) ?> <?= count($cart) === 1 ? 'producto' : 'productos' ?> · <?= $cartCount ?> unidades</p>
                 </div>
                 <div class="order-summary-body">
-                    <?php foreach ($cart as $item): ?>
+                    <?php foreach ($cart as $item):
+                        $precio = (float)$item['precio'];
+                        $qty    = (int)$item['cantidad']; ?>
                     <div class="order-item">
                         <img class="order-item-img"
-                             src="<?= htmlspecialchars($item['imagen']) ?>"
-                             alt="<?= htmlspecialchars($item['nombre']) ?>">
+                             src="<?= htmlspecialchars(getImageUrl($item['imagen'] ?? '')) ?>"
+                             alt="<?= htmlspecialchars($item['nombre_producto']) ?>">
                         <div style="flex:1;min-width:0;">
-                            <span class="order-item-name"><?= htmlspecialchars($item['nombre']) ?></span>
-                            <?php if ($item['precio'] > 0): ?>
+                            <span class="order-item-name"><?= htmlspecialchars($item['nombre_producto']) ?></span>
                             <span style="display:block;font-size:11px;color:#64748b;margin-top:2px;">
-                                $<?= number_format($item['precio'], 2) ?> × <?= (int)$item['cantidad'] ?>
+                                $<?= number_format($precio, 2) ?> × <?= $qty ?>
                             </span>
-                            <?php endif; ?>
                         </div>
                         <span class="order-item-qty" style="font-weight:700;color:#0f172a;">
-                            <?= $item['precio'] > 0 ? '$' . number_format($item['precio'] * $item['cantidad'], 2) : '×' . (int)$item['cantidad'] ?>
+                            $<?= number_format($precio * $qty, 2) ?>
                         </span>
                     </div>
                     <?php endforeach; ?>
@@ -756,16 +756,24 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
 
                     <div class="order-row">
                         <span>Subtotal</span>
-                        <strong><?= $cartTotal > 0 ? '$' . number_format($cartTotal, 2) : 'A cotizar' ?></strong>
+                        <strong>$<?= number_format((float)$cot['subtotal'], 2) ?></strong>
+                    </div>
+                    <div class="order-row">
+                        <span>IVA 16%</span>
+                        <strong>$<?= number_format((float)$cot['iva'], 2) ?></strong>
                     </div>
                     <div class="order-row">
                         <span>Envío</span>
+                        <?php if ($envioAmt > 0): ?>
+                        <strong>$<?= number_format($envioAmt, 2) ?></strong>
+                        <?php else: ?>
                         <strong style="color:#16a34a;">Gratis</strong>
+                        <?php endif; ?>
                     </div>
 
                     <div class="order-total">
                         <span>Total</span>
-                        <span><?= $cartTotal > 0 ? '$' . number_format($cartTotal, 2) . ' MXN' : 'Por confirmar' ?></span>
+                        <span>$<?= number_format($cartTotal, 2) ?> MXN</span>
                     </div>
 
                     <div class="order-badge">

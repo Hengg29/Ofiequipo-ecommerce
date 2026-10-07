@@ -5,7 +5,20 @@ ini_set('display_errors', 0);
 session_start();
 header('Content-Type: application/json');
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/../includes/cotizacion_pago.php';
 ob_clean(); // carga .env y $conn
+
+if (empty($_SESSION['user_id'])) {
+    echo json_encode(['error' => 'No autenticado.']);
+    exit;
+}
+
+// Solo se paga una cotización con total fijado por el admin (la carga pago.php)
+$cot = cot_pagable($conn, (int)($_SESSION['pago_cot_id'] ?? 0), (int)$_SESSION['user_id']);
+if (!$cot) {
+    echo json_encode(['error' => 'Esta cotización no está disponible para pago.']);
+    exit;
+}
 
 $clientId = $_ENV['PAYPAL_CLIENT_ID'] ?? '';
 $secret   = $_ENV['PAYPAL_SECRET']    ?? '';
@@ -46,43 +59,8 @@ if (!$accessToken) {
     exit;
 }
 
-// 2. Calcular total desde BD (nunca confiar en el cliente)
-$cart = $_SESSION['cart'] ?? [];
-if (empty($cart)) {
-    echo json_encode(['error' => 'El carrito está vacío.']);
-    exit;
-}
-
-$total = 0.0;
-$items = [];
-foreach ($cart as $item) {
-    $stmt = $conn->prepare("SELECT nombre, precio FROM producto WHERE id = ? AND activo = 1");
-    if (!$stmt) {
-        error_log('[PayPal] prepare falló: ' . $conn->error);
-        echo json_encode(['error' => 'Error interno al procesar el carrito.']);
-        exit;
-    }
-    $stmt->bind_param('i', $item['id']);
-    $stmt->execute();
-    $row = $stmt->get_result()->fetch_assoc();
-    $stmt->close();
-    if (!$row || (float)$row['precio'] <= 0) continue;
-    $unit = round((float)$row['precio'], 2);
-    $qty  = max(1, (int)$item['cantidad']);
-    $total += $unit * $qty;
-    $items[] = [
-        'name'        => mb_substr($row['nombre'], 0, 127),
-        'quantity'    => (string)$qty,
-        'unit_amount' => ['currency_code' => 'MXN', 'value' => number_format($unit, 2, '.', '')],
-    ];
-}
-
-if ($total <= 0) {
-    echo json_encode(['error' => 'Los productos aún no tienen precio registrado. Contacta a Ofiequipo para cotización.']);
-    exit;
-}
-
-$totalStr = number_format($total, 2, '.', '');
+// 2. Total fijado por el admin
+$totalStr = number_format((float)$cot['total'], 2, '.', '');
 
 // 3. Crear orden en PayPal
 $order = ppReq(
@@ -90,15 +68,12 @@ $order = ppReq(
     json_encode([
         'intent' => 'CAPTURE',
         'purchase_units' => [[
-            'description' => 'Pedido Ofiequipo de Tampico',
+            'description' => 'Cotización ' . $cot['folio'] . ' — Ofiequipo de Tampico',
+            'custom_id'   => (string)$cot['id'],
             'amount'      => [
                 'currency_code' => 'MXN',
                 'value'         => $totalStr,
-                'breakdown'     => [
-                    'item_total' => ['currency_code' => 'MXN', 'value' => $totalStr]
-                ],
             ],
-            'items' => $items,
         ]],
     ]),
     ['Authorization: Bearer ' . $accessToken, 'Content-Type: application/json']
@@ -107,5 +82,6 @@ $order = ppReq(
 if (!empty($order['id'])) {
     echo json_encode(['id' => $order['id']]);
 } else {
-    echo json_encode(['error' => 'No se pudo crear la orden en PayPal.', 'details' => $order]);
+    error_log('[PayPal Create] ' . json_encode($order));
+    echo json_encode(['error' => 'No se pudo crear la orden en PayPal.']);
 }

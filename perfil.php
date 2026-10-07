@@ -4,13 +4,13 @@ security_session_configure();
 session_start();
 security_headers();
 require_once __DIR__ . '/apis/db.php';
+require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/apis/mailer.php';
 require_once __DIR__ . '/includes/require_login.php';
 
 $userId    = (int)$_SESSION['user_id'];
 $userEmail = (string)($_SESSION['user_email'] ?? '');
 
-$cartCount     = array_sum(array_column($_SESSION['cart'] ?? [], 'cantidad'));
 $totalProducts = 0;
 $tp = $conn->query("SELECT COUNT(*) AS cnt FROM producto");
 if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
@@ -303,7 +303,7 @@ if ($cliente) {
             </nav>
             <div class="header-actions">
                 <a href="tel:8331881814" class="btn btn-secondary btn-small">Llamar</a>
-                <a href="https://wa.me/528331881814" class="btn btn-secondary btn-small">WhatsApp</a>
+                <a href="https://wa.me/<?= WHATSAPP_NUMERO ?>" class="btn btn-secondary btn-small">WhatsApp</a>
                 <?php require_once __DIR__ . '/includes/user_avatar.php'; ?>
             </div>
             <button class="menu-toggle" aria-label="Toggle menu">

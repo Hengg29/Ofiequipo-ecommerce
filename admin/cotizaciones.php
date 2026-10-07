@@ -10,7 +10,7 @@ $activeId  = 'cotizaciones';
 // ── Filtros ──────────────────────────────────────────────────
 $filtroStatus = $_GET['status'] ?? '';
 $filtroSearch = trim($_GET['q'] ?? '');
-$validStatuses = ['pendiente', 'en_proceso', 'cotizada', 'rechazada'];
+$validStatuses = ['pendiente', 'en_proceso', 'cotizada', 'pagada', 'rechazada'];
 
 $where  = [];
 $params = [];
@@ -59,7 +59,8 @@ function cot_badge(string $status): string {
     $map = [
         'pendiente'  => ['label' => 'Pendiente',   'class' => 'pendiente'],
         'en_proceso' => ['label' => 'En proceso',  'class' => 'en_proceso'],
-        'cotizada'   => ['label' => 'Cotizada',    'class' => 'completado'],
+        'cotizada'   => ['label' => 'Cotizada',    'class' => 'en_proceso'],
+        'pagada'     => ['label' => 'Pagada',      'class' => 'completado'],
         'rechazada'  => ['label' => 'Rechazada',   'class' => 'cancelado'],
     ];
     $d = $map[$status] ?? ['label' => ucfirst($status), 'class' => 'pendiente'];
@@ -102,6 +103,7 @@ require_once __DIR__ . '/includes/layout.php';
                 <option value="pendiente"  <?= $filtroStatus === 'pendiente'  ? 'selected' : '' ?>>Pendiente</option>
                 <option value="en_proceso" <?= $filtroStatus === 'en_proceso' ? 'selected' : '' ?>>En proceso</option>
                 <option value="cotizada"   <?= $filtroStatus === 'cotizada'   ? 'selected' : '' ?>>Cotizada</option>
+                <option value="pagada"     <?= $filtroStatus === 'pagada'     ? 'selected' : '' ?>>Pagada</option>
                 <option value="rechazada"  <?= $filtroStatus === 'rechazada'  ? 'selected' : '' ?>>Rechazada</option>
             </select>
         </div>
@@ -120,6 +122,7 @@ require_once __DIR__ . '/includes/layout.php';
         'pendiente'  => 'Pendientes',
         'en_proceso' => 'En proceso',
         'cotizada'   => 'Cotizadas',
+        'pagada'     => 'Pagadas',
         'rechazada'  => 'Rechazadas',
     ];
     foreach ($tabDefs as $val => $lbl):

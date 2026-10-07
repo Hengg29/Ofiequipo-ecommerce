@@ -20,7 +20,12 @@ $stmt->close();
 if (!$cot) admin_redirect('cotizaciones.php');
 
 // ── Cargar items ─────────────────────────────────────────────
-$stmt = $conn->prepare("SELECT * FROM cotizacion_items WHERE cotizacion_id = ? ORDER BY id");
+$stmt = $conn->prepare(
+    "SELECT ci.*, p.precio AS precio_catalogo
+       FROM cotizacion_items ci
+       LEFT JOIN producto p ON p.id = ci.producto_id
+      WHERE ci.cotizacion_id = ? ORDER BY ci.id"
+);
 $stmt->bind_param('i', $id);
 $stmt->execute();
 $items = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -28,6 +33,13 @@ $stmt->close();
 
 // ── Procesar acciones POST ───────────────────────────────────
 require_once dirname(__DIR__) . '/includes/mailer.php';
+require_once dirname(__DIR__) . '/includes/config.php';
+
+// Enlace de pago que recibe el cliente (requiere iniciar sesión con su cuenta)
+$appUrl    = rtrim($_ENV['APP_URL'] ?? ('http://' . ($_SERVER['HTTP_HOST'] ?? 'localhost')), '/');
+$linkPago  = $appUrl . '/pago.php?folio=' . rawurlencode($cot['folio']);
+$telCliente = '52' . substr(preg_replace('/\D/', '', $cot['telefono']), -10);
+$fmt = fn(float $n): string => '$' . number_format($n, 2);
 
 $flash = '';
 $flashType = 'ok';
@@ -35,6 +47,7 @@ $flashType = 'ok';
 // ── Detección de zona de envío ───────────────────────────────
 function detectarZona(string $municipio): array {
     $m = mb_strtolower(trim($municipio));
+    if ($m === '') return ['tipo' => 'otro', 'label' => 'Sin dirección registrada', 'info' => 'Confirma la dirección de entrega con el cliente por WhatsApp', 'color' => '#6b7280', 'bg' => '#f3f4f6', 'border' => '#d1d5db'];
     $gratis  = ['tampico', 'ciudad madero', 'madero', 'altamira'];
     $costo5k = ['pueblo viejo', 'panuco', 'pánuco'];
     foreach ($gratis  as $c) { if (str_contains($m, $c)) return ['tipo' => 'gratis',  'label' => 'Zona metropolitana', 'info' => 'Envío siempre gratis',        'color' => '#16a34a', 'bg' => '#dcfce7', 'border' => '#86efac']; }
@@ -53,12 +66,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $costoEnvio  = max(0, (float)($_POST['envio_costo'] ?? 0));
         $validTipos  = ['gratis', 'con_costo'];
         if (in_array($tipoEnvio, $validTipos, true)) {
-            $upd = $conn->prepare("UPDATE cotizaciones SET envio_tipo = ?, envio_costo = ? WHERE id = ?");
-            $upd->bind_param('sdi', $tipoEnvio, $costoEnvio, $id);
+            // Si ya hay total fijado (y no está pagada), el total se recalcula con el nuevo envío
+            $upd = $conn->prepare(
+                "UPDATE cotizaciones
+                    SET envio_tipo = ?, envio_costo = ?,
+                        total = IF(total > 0, subtotal + iva + IF(? = 'con_costo', ?, 0), total)
+                  WHERE id = ? AND pagada_en IS NULL"
+            );
+            $upd->bind_param('sdsdi', $tipoEnvio, $costoEnvio, $tipoEnvio, $costoEnvio, $id);
             $upd->execute();
             $upd->close();
             $cot['envio_tipo']  = $tipoEnvio;
             $cot['envio_costo'] = $costoEnvio;
+            if ((float)$cot['total'] > 0) {
+                $cot['total'] = (float)$cot['subtotal'] + (float)$cot['iva'] + ($tipoEnvio === 'con_costo' ? $costoEnvio : 0);
+            }
             admin_audit($conn, 'actualizar', 'cotizacion', $id, "envio → $tipoEnvio $$costoEnvio");
             $flash = 'Tipo de envío guardado.';
         }
@@ -79,143 +101,141 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // Enviar respuesta con cotización
-    if ($accion === 'responder') {
-        $mensaje  = trim($_POST['mensaje'] ?? '');
-        $newStatus = $_POST['status_al_enviar'] ?? 'cotizada';
-        $validStatuses = ['pendiente', 'en_proceso', 'cotizada', 'rechazada'];
-        if (!in_array($newStatus, $validStatuses, true)) $newStatus = 'cotizada';
-
-        // Recoger precios editados por item
-        $preciosEditados = $_POST['precio_item'] ?? []; // [item_id => precio]
+    // Guardar precios negociados y enviar enlace de pago
+    if ($accion === 'enviar_pago') {
+        $mensaje         = trim($_POST['mensaje'] ?? '');
+        $preciosEditados = $_POST['precio_item'] ?? []; // [item_id => precio unitario sin IVA]
         $notasItem       = $_POST['nota_item']   ?? []; // [item_id => nota]
 
-        // Construir tabla HTML del email con IVA
-        $itemsHtml  = '';
-        $subtotalSinIva = 0;
-        foreach ($items as $item) {
-            $iid    = (int)$item['id'];
-            $nProd  = htmlspecialchars($item['nombre_producto'] ?? '');
-            $qty    = (int)$item['cantidad'];
-            $precio = max(0, (float)($preciosEditados[$iid] ?? 0));
-            $sub    = $precio * $qty;
-            $nota   = htmlspecialchars($notasItem[$iid] ?? '');
-            $subtotalSinIva += $sub;
-            $precioStr = $precio > 0 ? '$' . number_format($precio, 2) : '<em style="color:#94a3b8;">Por confirmar</em>';
-            $subStr    = $precio > 0 ? '$' . number_format($sub, 2)    : '—';
-            $notaRow   = $nota ? "<div style='font-size:12px;color:#64748b;margin-top:3px;'>$nota</div>" : '';
-            $itemsHtml .= "
-            <tr>
-              <td style='padding:12px 0;border-bottom:1px solid #f1f5f9;color:#0f172a;font-size:14px;line-height:1.4;'>{$nProd}{$notaRow}</td>
-              <td style='padding:12px 0;border-bottom:1px solid #f1f5f9;color:#475569;text-align:center;width:50px;font-weight:600;font-size:14px;'>{$qty}</td>
-              <td style='padding:12px 0;border-bottom:1px solid #f1f5f9;color:#475569;text-align:right;width:100px;font-size:14px;'>{$precioStr}</td>
-              <td style='padding:12px 0;border-bottom:1px solid #f1f5f9;color:#0f172a;text-align:right;width:100px;font-size:14px;font-weight:700;'>{$subStr}</td>
-            </tr>";
+        $faltan = 0;
+        $subtotalSinIva = 0.0;
+        foreach ($items as &$item) {
+            $item['precio'] = round(max(0, (float)($preciosEditados[(int)$item['id']] ?? 0)), 2);
+            if ($item['precio'] <= 0) $faltan++;
+            $subtotalSinIva += $item['precio'] * (int)$item['cantidad'];
         }
+        unset($item);
 
-        // IVA y envío
-        $ivaAmt     = round($subtotalSinIva * 0.16, 2);
-        $tipoEnvioPost  = $cot['envio_tipo']  ?? 'por_definir';
-        $costoEnvio     = (float)($cot['envio_costo'] ?? 0);
-        $envioAmt   = ($tipoEnvioPost === 'gratis') ? 0 : $costoEnvio;
-        $totalFinal = $subtotalSinIva + $ivaAmt + $envioAmt;
-
-        $ivaSep = $subtotalSinIva > 0 ? "
-            <tr><td colspan='3' style='padding:10px 0 4px;font-size:12px;color:#64748b;text-align:right;'>Subtotal sin IVA</td><td style='padding:10px 0 4px;font-size:13px;color:#475569;text-align:right;font-weight:600;'>\$" . number_format($subtotalSinIva, 2) . "</td></tr>
-            <tr><td colspan='3' style='padding:4px 0;font-size:12px;color:#64748b;text-align:right;'>IVA 16%</td><td style='padding:4px 0;font-size:13px;color:#475569;text-align:right;'>\$" . number_format($ivaAmt, 2) . "</td></tr>" : '';
-        $envioRow = ($tipoEnvioPost === 'gratis')
-            ? "<tr><td colspan='3' style='padding:4px 0;font-size:12px;color:#16a34a;text-align:right;font-weight:600;'>Envío</td><td style='padding:4px 0;font-size:13px;color:#16a34a;text-align:right;font-weight:700;'>GRATIS</td></tr>"
-            : ($costoEnvio > 0 ? "<tr><td colspan='3' style='padding:4px 0;font-size:12px;color:#64748b;text-align:right;'>Envío</td><td style='padding:4px 0;font-size:13px;color:#475569;text-align:right;'>\$" . number_format($costoEnvio, 2) . "</td></tr>" : '');
-        $totalStr   = $totalFinal > 0 ? '$' . number_format($totalFinal, 2) : 'A confirmar';
-        $itemsHtml .= $ivaSep . $envioRow . "
-            <tr><td colspan='3' style='padding:12px 0 0;font-size:13px;color:#0f172a;text-align:right;font-weight:700;text-transform:uppercase;border-top:2px solid #e2e8f0;'>Total con IVA</td>
-                <td style='padding:12px 0 0;font-size:17px;color:#1e3a8a;text-align:right;font-weight:800;border-top:2px solid #e2e8f0;'>{$totalStr}</td></tr>";
-
-        $tableHtml = "
-        <table width='100%' cellpadding='0' cellspacing='0' style='margin-bottom:24px;border-collapse:collapse;'>
-            <thead><tr>
-                <th style='font-size:11px;color:#94a3b8;font-weight:700;text-align:left;padding-bottom:8px;border-bottom:2px solid #e2e8f0;letter-spacing:.05em;text-transform:uppercase;'>Producto</th>
-                <th style='font-size:11px;color:#94a3b8;font-weight:700;text-align:center;padding-bottom:8px;border-bottom:2px solid #e2e8f0;width:50px;letter-spacing:.05em;text-transform:uppercase;'>Cant.</th>
-                <th style='font-size:11px;color:#94a3b8;font-weight:700;text-align:right;padding-bottom:8px;border-bottom:2px solid #e2e8f0;width:100px;letter-spacing:.05em;text-transform:uppercase;'>P. Unit.</th>
-                <th style='font-size:11px;color:#94a3b8;font-weight:700;text-align:right;padding-bottom:8px;border-bottom:2px solid #e2e8f0;width:100px;letter-spacing:.05em;text-transform:uppercase;'>Subtotal</th>
-            </tr></thead>
-            <tbody>{$itemsHtml}</tbody>
-        </table>";
-
-        // Bloque de envío para el email
-        $envioEmailHtml = '';
-        if ($tipoEnvioPost === 'gratis') {
-            $envioEmailHtml = "<div style='background:#dcfce7;border:1px solid #86efac;border-radius:10px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:12px;'>"
-                . "<span style='font-size:20px;'>🚚</span>"
-                . "<div><div style='font-size:14px;font-weight:700;color:#15803d;'>¡Tu envío es GRATIS!</div>"
-                . "<div style='font-size:12px;color:#16a34a;margin-top:2px;'>Sin costo adicional de entrega.</div></div></div>";
-        } elseif ($costoEnvio > 0) {
-            $envioEmailHtml = "<div style='background:#fef3c7;border:1px solid #fcd34d;border-radius:10px;padding:14px 18px;margin-bottom:20px;'>"
-                . "<div style='font-size:14px;font-weight:700;color:#92400e;'>🚚 Costo de envío: \$" . number_format($costoEnvio, 2) . "</div>"
-                . "<div style='font-size:12px;color:#b45309;margin-top:2px;'>Ya incluido en el total mostrado.</div></div>";
-        }
-
-        $mensajeHtml = $mensaje
-            ? "<div style='background:#f8fafc;border-left:4px solid #1e3a8a;border-radius:0 8px 8px 0;padding:14px 18px;margin-bottom:24px;'><p style='font-size:14px;color:#0f172a;line-height:1.7;margin:0;'>" . nl2br(htmlspecialchars($mensaje)) . "</p></div>"
-            : '';
-
-        $folio  = htmlspecialchars($cot['folio']);
-        $nombre = htmlspecialchars($cot['nombre']);
-
-        $cuerpoCliente = "
-            <p style='color:#475569;font-size:15px;line-height:1.7;margin:0 0 16px;'>
-                Hola <strong style='color:#0f172a;'>{$nombre}</strong>,
-            </p>
-            <p style='color:#475569;font-size:15px;line-height:1.7;margin:0 0 20px;'>
-                Tu cotización ya está lista. A continuación encontrarás el detalle de los productos solicitados:
-            </p>
-            <div style='background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:14px 18px;margin-bottom:24px;display:inline-block;'>
-                <span style='font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.05em;'>Folio de referencia</span>
-                <div style='font-size:22px;font-weight:800;color:#1e3a8a;'>{$folio}</div>
-            </div>
-            {$mensajeHtml}
-            {$tableHtml}
-            {$envioEmailHtml}
-            <p style='color:#475569;font-size:14px;line-height:1.6;margin:0 0 8px;'>
-                Para confirmar tu pedido o resolver cualquier duda, contáctanos:
-            </p>
-            <ul style='color:#475569;font-size:14px;line-height:1.8;margin:0 0 24px;padding-left:20px;'>
-                <li>WhatsApp: <a href='https://wa.me/528331881814' style='color:#1e3a8a;font-weight:600;'>833 188 1814</a></li>
-                <li>Teléfono: <strong>(833) 213-3837 | (833) 217-2047</strong></li>
-            </ul>
-        ";
-
-        $ok = sendMail(
-            $cot['email'],
-            $cot['nombre'],
-            "Tu cotización {$cot['folio']} — OfiEquipo de Tampico",
-            _mailBase('¡Tu cotización está lista!', $cuerpoCliente)
-                . _mailBtn('https://wa.me/528331881814?text=' . urlencode("Hola, quiero confirmar mi cotización {$cot['folio']}"), 'Confirmar por WhatsApp')
-        );
-
-        if ($ok !== false) {
-            // Actualizar estado
-            $statusToSave = (string)($newStatus ?? 'cotizada');
-            $upd = $conn->prepare("UPDATE cotizaciones SET status = ? WHERE id = ?");
-            $upd->bind_param('si', $statusToSave, $id);
-            $upd->execute();
-            $upd->close();
-            $cot['status'] = $statusToSave;
-            admin_audit($conn, 'responder', 'cotizacion', $id, "email enviado a {$cot['email']}");
-            $flash = "Cotización enviada a {$cot['email']} y estado actualizado a «{$statusToSave}».";
-        } else {
-            $flash = 'Error al enviar el correo. Revisa la configuración de SendGrid.';
+        if ($cot['pagada_en'] !== null) {
+            $flash = 'Esta cotización ya fue pagada; no se puede modificar.';
             $flashType = 'err';
+        } elseif (empty($cot['usuario_id'])) {
+            $flash = 'Esta cotización se registró sin cuenta de cliente, así que no puede pagarse en línea. Atiéndela por WhatsApp.';
+            $flashType = 'err';
+        } elseif ($faltan > 0) {
+            $flash = "Captura el precio de todos los productos ($faltan sin precio).";
+            $flashType = 'err';
+        } else {
+            $ivaAmt     = round($subtotalSinIva * 0.16, 2);
+            $tipoEnvio  = $cot['envio_tipo'] ?? 'por_definir';
+            $envioAmt   = $tipoEnvio === 'con_costo' ? (float)$cot['envio_costo'] : 0.0;
+            $totalFinal = round($subtotalSinIva + $ivaAmt + $envioAmt, 2);
+
+            // Guardar precios + totales (el pago siempre cobra lo que quede aquí)
+            $conn->begin_transaction();
+            $upi = $conn->prepare("UPDATE cotizacion_items SET precio = ? WHERE id = ? AND cotizacion_id = ?");
+            foreach ($items as $item) {
+                $iid = (int)$item['id'];
+                $upi->bind_param('dii', $item['precio'], $iid, $id);
+                $upi->execute();
+            }
+            $upi->close();
+            $upc = $conn->prepare(
+                "UPDATE cotizaciones
+                    SET subtotal = ?, iva = ?, total = ?, status = 'cotizada', pago_enviado_en = NOW()
+                  WHERE id = ? AND pagada_en IS NULL"
+            );
+            $upc->bind_param('dddi', $subtotalSinIva, $ivaAmt, $totalFinal, $id);
+            $upc->execute();
+            $upc->close();
+            $conn->commit();
+
+            $cot['subtotal'] = $subtotalSinIva;
+            $cot['iva']      = $ivaAmt;
+            $cot['total']    = $totalFinal;
+            $cot['status']   = 'cotizada';
+            $cot['pago_enviado_en'] = date('Y-m-d H:i:s');
+            admin_audit($conn, 'actualizar', 'cotizacion', $id, "precios fijados, total {$totalFinal}");
+
+            // Correo: productos y cantidades + total (sin precios unitarios)
+            $filas = '';
+            foreach ($items as $item) {
+                $nota = trim($notasItem[(int)$item['id']] ?? '');
+                $filas .= "<tr>
+                  <td style='padding:12px 0;border-bottom:1px solid #f1f5f9;color:#0f172a;font-size:14px;line-height:1.4;'>"
+                    . htmlspecialchars($item['nombre_producto'])
+                    . ($nota ? "<div style='font-size:12px;color:#64748b;margin-top:3px;'>" . htmlspecialchars($nota) . "</div>" : '')
+                  . "</td>
+                  <td style='padding:12px 0;border-bottom:1px solid #f1f5f9;color:#475569;text-align:center;width:70px;font-weight:600;font-size:14px;'>" . (int)$item['cantidad'] . "</td>
+                </tr>";
+            }
+            $envioTxt = $tipoEnvio === 'gratis' ? 'Envío gratis' : ($envioAmt > 0 ? 'Incluye envío por ' . $fmt($envioAmt) : 'Envío por confirmar');
+            $mensajeHtml = $mensaje
+                ? "<div style='background:#f8fafc;border-left:4px solid #1e3a8a;border-radius:0 8px 8px 0;padding:14px 18px;margin-bottom:24px;'><p style='font-size:14px;color:#0f172a;line-height:1.7;margin:0;'>" . nl2br(htmlspecialchars($mensaje)) . "</p></div>"
+                : '';
+            $waNum = WHATSAPP_NUMERO;
+
+            $cuerpoCliente = "
+                <p style='color:#475569;font-size:15px;line-height:1.7;margin:0 0 16px;'>
+                    Hola <strong style='color:#0f172a;'>" . htmlspecialchars($cot['nombre']) . "</strong>,
+                </p>
+                <p style='color:#475569;font-size:15px;line-height:1.7;margin:0 0 20px;'>
+                    Tu cotización <strong>" . htmlspecialchars($cot['folio']) . "</strong> está lista. Puedes pagarla en línea con tarjeta o PayPal
+                    iniciando sesión con tu cuenta.
+                </p>
+                {$mensajeHtml}
+                <table width='100%' cellpadding='0' cellspacing='0' style='margin-bottom:20px;border-collapse:collapse;'>
+                    <thead><tr>
+                        <th style='font-size:11px;color:#94a3b8;font-weight:700;text-align:left;padding-bottom:8px;border-bottom:2px solid #e2e8f0;letter-spacing:.05em;text-transform:uppercase;'>Producto</th>
+                        <th style='font-size:11px;color:#94a3b8;font-weight:700;text-align:center;padding-bottom:8px;border-bottom:2px solid #e2e8f0;width:70px;letter-spacing:.05em;text-transform:uppercase;'>Cant.</th>
+                    </tr></thead>
+                    <tbody>{$filas}</tbody>
+                </table>
+                <div style='background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:18px 22px;margin-bottom:8px;'>
+                    <div style='font-size:12px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.05em;'>Total a pagar (IVA incluido)</div>
+                    <div style='font-size:28px;font-weight:800;color:#1e3a8a;letter-spacing:-0.5px;'>" . $fmt($totalFinal) . " MXN</div>
+                    <div style='font-size:12px;color:#64748b;margin-top:4px;'>{$envioTxt}</div>
+                </div>
+                " . _mailBtn($linkPago, 'Pagar mi cotización') . "
+                <p style='color:#94a3b8;font-size:12px;text-align:center;margin:8px 0 20px;'>
+                    Si el botón no funciona, copia este enlace: " . htmlspecialchars($linkPago) . "
+                </p>
+                <p style='color:#475569;font-size:14px;line-height:1.6;margin:0;'>
+                    ¿Dudas? Escríbenos por <a href='https://wa.me/{$waNum}' style='color:#1e3a8a;font-weight:600;'>WhatsApp</a>
+                    o llama al <strong>(833) 213-3837 | (833) 217-2047</strong>.
+                </p>";
+
+            $ok = sendMail(
+                $cot['email'],
+                $cot['nombre'],
+                "Tu cotización {$cot['folio']} está lista para pagar — OfiEquipo de Tampico",
+                _mailBase('¡Tu cotización está lista!', $cuerpoCliente)
+            );
+            admin_audit($conn, 'responder', 'cotizacion', $id, ($ok ? 'enlace de pago enviado a ' : 'falló correo a ') . $cot['email']);
+            $flash = $ok
+                ? "Precios guardados. Enlace de pago enviado a {$cot['email']}. Puedes mandarlo también por WhatsApp."
+                : 'Precios guardados, pero el correo no se pudo enviar (revisa SendGrid). Manda el enlace por WhatsApp.';
+            $flashType = $ok ? 'ok' : 'err';
         }
     }
 }
+
+// Mensaje de WhatsApp con el enlace de pago (para el botón del panel)
+$waPagoUrl = 'https://wa.me/' . $telCliente . '?text=' . rawurlencode(
+    "Hola {$cot['nombre']}, tu cotización {$cot['folio']} de OfiEquipo está lista.\n"
+    . 'Total a pagar: ' . $fmt((float)$cot['total']) . " MXN (IVA incluido).\n"
+    . "Puedes pagarla aquí iniciando sesión con tu cuenta:\n{$linkPago}"
+);
+$puedeEnviarLink = $cot['pagada_en'] === null && !empty($cot['usuario_id']);
+$linkEnviado     = $cot['pago_enviado_en'] !== null && (float)$cot['total'] > 0;
 
 // ── Labels de estado ─────────────────────────────────────────
 function cot_badge(string $status): string {
     $map = [
         'pendiente'  => ['Pendiente',  'pendiente'],
         'en_proceso' => ['En proceso', 'en_proceso'],
-        'cotizada'   => ['Cotizada',   'completado'],
+        'cotizada'   => ['Cotizada',   'en_proceso'],
+        'pagada'     => ['Pagada',     'completado'],
         'rechazada'  => ['Rechazada',  'cancelado'],
     ];
     [$lbl, $cls] = $map[$status] ?? [ucfirst($status), 'pendiente'];
@@ -259,6 +279,7 @@ require_once __DIR__ . '/includes/layout.php';
             <option value="en_proceso" <?= $cot['status']==='en_proceso' ? 'selected':'' ?>>En proceso</option>
             <option value="cotizada"   <?= $cot['status']==='cotizada'   ? 'selected':'' ?>>Cotizada</option>
             <option value="rechazada"  <?= $cot['status']==='rechazada'  ? 'selected':'' ?>>Rechazada</option>
+            <?php if ($cot['status'] === 'pagada'): ?><option value="pagada" selected disabled>Pagada</option><?php endif; ?>
         </select>
         <button type="submit" class="btn btn-ghost btn-sm">Actualizar estado</button>
     </form>
@@ -285,14 +306,14 @@ require_once __DIR__ . '/includes/layout.php';
             <div style="display:grid;grid-template-columns:1fr 70px 130px 130px;gap:12px;padding-bottom:10px;border-bottom:2px solid var(--border-light);margin-bottom:2px;">
                 <span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;">Producto</span>
                 <span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;text-align:center;">Cant.</span>
-                <span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;text-align:right;">P. Referencia</span>
+                <span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;text-align:right;">P. catálogo</span>
                 <span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;text-align:right;">Subtotal</span>
             </div>
 
             <?php
             $totalRef = 0;
             foreach ($items as $item):
-                $precio = (float)($item['precio'] ?? 0);
+                $precio = (float)($item['precio_catalogo'] ?? 0);
                 $sub    = $precio * (int)$item['cantidad'];
                 $totalRef += $sub;
             ?>
@@ -315,19 +336,45 @@ require_once __DIR__ . '/includes/layout.php';
 
             <?php if ($totalRef > 0): ?>
             <div style="display:flex;justify-content:flex-end;padding-top:14px;border-top:2px solid var(--border-light);margin-top:4px;gap:24px;align-items:center;">
-                <span style="font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;">Total de referencia</span>
+                <span style="font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;">Total a precio de catálogo</span>
                 <span style="font-size:19px;font-weight:800;color:var(--primary);">$<?= number_format($totalRef, 2) ?></span>
             </div>
             <?php endif; ?>
         </div>
 
-        <!-- Formulario de respuesta -->
+        <!-- Precios negociados + enlace de pago -->
         <div class="card">
-            <h2 style="margin-bottom:4px;">Enviar cotización al cliente</h2>
-            <p style="font-size:13px;color:var(--muted);margin-bottom:20px;">Llena los precios, escribe un mensaje opcional y envía. Se mandará un email a <strong><?= admin_h($cot['email']) ?></strong>.</p>
+            <?php if ($cot['pagada_en'] !== null): ?>
+            <h2 style="margin-bottom:8px;">Cotización pagada</h2>
+            <p style="font-size:14px;color:var(--text-secondary);margin:0;">
+                Pagada el <?= date('d/m/Y H:i', strtotime($cot['pagada_en'])) ?> con <?= admin_h(ucfirst((string)$cot['pago_metodo'])) ?>
+                por <strong><?= $fmt((float)$cot['total']) ?> MXN</strong>.
+                Referencia: <code><?= admin_h((string)$cot['pago_referencia']) ?></code>.
+                El pedido ya aparece en <a href="ventas.php">Ventas</a> y en <a href="envios.php">Envíos</a>.
+            </p>
+            <?php else: ?>
+            <h2 style="margin-bottom:4px;">Precio acordado y enlace de pago</h2>
+            <p style="font-size:13px;color:var(--muted);margin-bottom:20px;">
+                Captura el precio unitario negociado (sin IVA). Al guardar, se manda a <strong><?= admin_h($cot['email']) ?></strong>
+                un enlace para pagar el total con tarjeta o PayPal. El cliente solo ve el total en ese enlace.
+            </p>
+
+            <?php if (!$puedeEnviarLink): ?>
+            <div class="alert err" style="margin-bottom:16px;">Esta cotización se registró sin cuenta de cliente: no puede pagarse en línea.</div>
+            <?php endif; ?>
+
+            <?php if ($linkEnviado): ?>
+            <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px 14px;margin-bottom:18px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;">
+                <span style="font-size:13px;color:#15803d;font-weight:600;flex:1;min-width:200px;">
+                    Enlace enviado el <?= date('d/m/Y H:i', strtotime($cot['pago_enviado_en'])) ?> · Total <?= $fmt((float)$cot['total']) ?> MXN
+                </span>
+                <a href="<?= admin_h($waPagoUrl) ?>" target="_blank" rel="noopener" class="btn btn-sm" style="background:#25D366;color:#fff;">Enviar enlace por WhatsApp</a>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="navigator.clipboard.writeText(<?= admin_h(json_encode($linkPago)) ?>);this.textContent='Copiado ✓'">Copiar enlace</button>
+            </div>
+            <?php endif; ?>
 
             <form method="POST" id="formResponder">
-                <input type="hidden" name="accion" value="responder">
+                <input type="hidden" name="accion" value="enviar_pago">
 
                 <!-- Precios por producto -->
                 <div style="margin-bottom:24px;">
@@ -342,7 +389,7 @@ require_once __DIR__ . '/includes/layout.php';
                     </div>
 
                     <?php foreach ($items as $item):
-                        $precio = (float)($item['precio'] ?? 0);
+                        $precio = (float)($item['precio'] ?? 0) ?: (float)($item['precio_catalogo'] ?? 0);
                     ?>
                     <div style="display:grid;grid-template-columns:1fr 70px 130px 130px;gap:12px;align-items:start;padding:12px 0;border-bottom:1px solid var(--border-light);">
                         <div>
@@ -357,7 +404,7 @@ require_once __DIR__ . '/includes/layout.php';
                                 name="precio_item[<?= (int)$item['id'] ?>]"
                                 class="price-input"
                                 value="<?= $precio > 0 ? number_format($precio, 2, '.', '') : '' ?>"
-                                placeholder="0.00"
+                                placeholder="0.00" required
                                 data-qty="<?= (int)$item['cantidad'] ?>"
                                 data-item-id="<?= (int)$item['id'] ?>"
                                 oninput="recalcItem(this)">
@@ -389,24 +436,15 @@ require_once __DIR__ . '/includes/layout.php';
                 <div class="form-row">
                     <label>Mensaje para el cliente (opcional)</label>
                     <textarea name="mensaje" style="max-width:100%;min-height:110px;"
-                        placeholder="Ej: Los precios incluyen IVA. Tiempo de entrega estimado: 5-7 días hábiles. Para pedidos mayores a 5 piezas aplica descuento especial..."></textarea>
+                        placeholder="Ej: Tiempo de entrega estimado: 5-7 días hábiles. Incluye armado e instalación."></textarea>
                 </div>
 
-                <!-- Estado al enviar -->
-                <div class="form-row" style="margin-bottom:20px;">
-                    <label>Estado tras enviar</label>
-                    <select name="status_al_enviar" style="max-width:220px;">
-                        <option value="cotizada" selected>Cotizada</option>
-                        <option value="en_proceso">En proceso</option>
-                        <option value="pendiente">Pendiente</option>
-                    </select>
-                </div>
-
-                <button type="submit" class="btn btn-primary" style="gap:10px;">
+                <button type="submit" class="btn btn-primary" style="gap:10px;" <?= $puedeEnviarLink ? '' : 'disabled' ?>>
                     <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-                    Enviar cotización por email
+                    <?= $linkEnviado ? 'Actualizar precios y reenviar enlace' : 'Guardar precios y enviar enlace de pago' ?>
                 </button>
             </form>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -532,7 +570,7 @@ require_once __DIR__ . '/includes/layout.php';
         <div class="card" style="margin-bottom:16px;">
             <h2 style="margin-bottom:14px;">Contacto rápido</h2>
             <div style="display:flex;flex-direction:column;gap:10px;">
-                <a href="https://wa.me/52<?= preg_replace('/\D/', '', $cot['telefono']) ?>?text=<?= urlencode("Hola {$cot['nombre']}, le contactamos de OfiEquipo respecto a su cotización {$cot['folio']}.") ?>"
+                <a href="https://wa.me/<?= $telCliente ?>?text=<?= urlencode("Hola {$cot['nombre']}, le contactamos de OfiEquipo respecto a su cotización {$cot['folio']}.") ?>"
                    target="_blank" rel="noopener"
                    style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:#dcfce7;color:#15803d;border:1px solid #bbf7d0;border-radius:10px;text-decoration:none;font-size:13px;font-weight:600;transition:background .15s;"
                    onmouseover="this.style.background='#bbf7d0'" onmouseout="this.style.background='#dcfce7'">
