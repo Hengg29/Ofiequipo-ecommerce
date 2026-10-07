@@ -455,5 +455,6 @@ $metodoPago = [
         if(mt&&nv) mt.addEventListener('click',()=>{mt.classList.toggle('active');nv.classList.toggle('active');});
     });
     </script>
+    <?php require_once __DIR__ . '/includes/gabu_widget.php'; ?>
 </body>
 </html>

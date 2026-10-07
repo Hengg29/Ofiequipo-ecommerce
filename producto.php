@@ -821,6 +821,7 @@ if ($tp) $totalProducts = $tp->fetch_assoc()['cnt'] ?? 0;
     </a>
 
     <?php require_once __DIR__ . '/includes/cotizacion_widget.php'; ?>
+<?php require_once __DIR__ . '/includes/gabu_widget.php'; ?>
 
     <!-- IMAGE LIGHTBOX -->
     <div class="img-lightbox" id="imgLightbox">

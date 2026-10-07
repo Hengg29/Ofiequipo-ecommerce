@@ -530,6 +530,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg>
                     Inicia sesión para enviar tu cotización. Tus productos se conservan.
                 </div>
+            <?php elseif ($getMsg === 'gabu'): ?>
+                <div class="alert alert-success" style="line-height:1.5;">
+                    Gabu ya recibió tu solicitud. Inicia sesión para darle seguimiento.
+                </div>
             <?php elseif ($getMsg === 'verificar_correo'): ?>
                 <div class="alert alert-success" style="line-height:1.5;">
                     <strong>¡Cuenta creada!</strong> Te enviamos un correo a <strong><?= $getEmail ?></strong>. Verifica tu correo para poder iniciar sesión.

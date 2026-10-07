@@ -2898,6 +2898,7 @@ function pageUrl($p)
         </svg>
     </a>
 <?php require_once __DIR__ . '/includes/cotizacion_widget.php'; ?>
+<?php require_once __DIR__ . '/includes/gabu_widget.php'; ?>
 </body>
 
 </html>

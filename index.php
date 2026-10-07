@@ -5018,6 +5018,7 @@ if ($destCol) {
     });
     </script>
 <?php require_once __DIR__ . '/includes/cotizacion_widget.php'; ?>
+<?php require_once __DIR__ . '/includes/gabu_widget.php'; ?>
 <?php require_once __DIR__ . '/includes/animacion_festiva.php'; ?>
 </body>
 
